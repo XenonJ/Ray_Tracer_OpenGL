@@ -1,0 +1,72 @@
+<scenefile>
+	<globaldata>
+		<diffusecoeff v="0.5"/>
+		<specularcoeff v="0.5"/>
+		<ambientcoeff v="0.5"/>
+	</globaldata>
+
+	<lightdata>
+		<id v="0"/>
+		<color r="1" g="1" b="1"/>
+		<position x="3" y="3" z="3"/>
+	</lightdata>
+
+	<object type="tree" name="root">
+		<!-- bottle -->
+		<transblock>
+			<scale x="2" y="4" z="2"/>
+			<object type="primitive" name="cylinder" >
+				<diffuse r="1" g="1" b="1.2" a="0"/>
+				<ambient r="0" g="0" b="0.2" a="0"/>
+				<specular r="0" g="0" b="0.2" a="0"/>
+			</object>
+		</transblock>
+		<!-- label -->
+		<transblock>
+			<scale x="2.005" y="3" z="2.005"/>
+			<object type="primitive" name="cylinder" >
+				<diffuse r="1" g="0" b="0"/>
+			</object>
+		</transblock>
+		<!-- under cap -->
+		<transblock>
+			<translate x="0" y="3.4" z="0" />
+			<scale x="1" y="1.25" z="1"/>
+			<object type="primitive" name="cylinder" >
+				<diffuse r="1" g="1" b="1.2" a="0"/>
+				<ambient r="0" g="0" b="0.2" a="0"/>
+				<specular r="0" g="0" b="0.2" a="0"/>
+			</object>
+		</transblock>
+		<!-- cap -->
+		<transblock>
+			<translate x="0" y="3.7" z="0" />
+			<scale x="1.1" y=".75" z="1.1"/>
+			<object type="primitive" name="cylinder" >
+				<diffuse r="0" g="1" b="0"/>
+				<ambient r="0" g="1" b="0"/>
+			</object>
+		</transblock>
+		<!-- the cap seal thingy -->
+		<transblock>
+			<translate x="0" y="3.3" z="0" />
+			<scale x="1.11" y=".2" z="1.11"/>
+			<object type="primitive" name="cylinder" >
+				<diffuse r="0" g="1" b="0"/>
+				<ambient r="0" g="1" b="0"/>
+			</object>
+		</transblock>
+		<!-- top -->
+		<transblock>
+			<translate x="0" y="3" z="0" />
+			<scale x="2" y="2" z="2"/>
+			<object type="primitive" name="cone" >
+				<diffuse r="1" g="1" b="1.2" a="0"/>
+				<ambient r="0" g="0" b="0.2" a="0"/>
+				<specular r="0" g="0" b="0.2" a="0"/>
+			</object>
+		</transblock>
+	</object>
+
+</scenefile>
+

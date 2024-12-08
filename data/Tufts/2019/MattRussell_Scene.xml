@@ -1,0 +1,121 @@
+<scenefile>	
+     <globaldata>
+		<diffusecoeff v=".7"/>
+		<specularcoeff v="0.0"/>
+		<ambientcoeff v="0.00"/>
+    </globaldata>
+	
+	<cameradata>
+	 <pos x="0" y="0" z="-2"/>
+	 <focus x="0" y="0" z="0"/>
+	 <up x="0" y="1" z="0"/>
+	 <heightangle v="45"/>
+	 </cameradata>
+	
+    <lightdata>		
+		<id v="0"/>
+		<color r="0.5" g="0.5" b="0.5"/>
+		<position x="1" y="-0.5" z="-.2"/>	
+    </lightdata>
+	
+	<lightdata>
+		<id v="1"/>
+		<color r="0.5" g="0.5" b="0.5"/>
+		<position x="-0.5" y="0.0" z="-0.2"/>
+	</lightdata>
+	 
+	<lightdata>		
+		<id v="3"/>
+		<color r="0.25" g="0.25" b="0.25"/>
+		<position x="0" y="-0.5" z="-.4"/>	
+    </lightdata>
+		
+	<object type="tree" name="root">
+		<transblock name="pyramid">			
+			<translate x="0.0" y="0.0" z="0.05"/> <!-- -.079"/>-->		
+			<scale x=".73" y=".73" z="0.5"/><!--0.05"-->								
+			<object type="primitive" name="cone">
+				<diffuse r="0" g="1.0" b="1.0"/>
+			</object>			
+		</transblock>
+		<transblock name="pyramid2">	
+			<translate x="0.0" y="0.0" z="0.045"/> <!--"-0.08"/>-->	
+			<scale x=".71" y=".71" z="0.5"/>		<!--0.05"-->						
+			<object type="primitive" name="cone">
+				<diffuse r="0" g="0" b="0"/>
+			</object>			
+		</transblock>
+		
+		<transblock name = "light">				
+			<object type = "tree" name = "beam">	
+				<transblock name= "incoming">		
+					<translate x="0.48" y="-0.1" z="-0.115"/>					
+					<rotate x="0" y="0" z="1" angle="74"/>	
+					<scale x="0.02" y="0.7" z="0.025"/>									
+					<object type="primitive" name="cylinder">	
+						<diffuse r="1" g="1" b="1"/>	
+					</object>	
+				</transblock>			
+				<transblock name= "middle_cone">		
+					<translate x="0.04" y="-0.00005" z="-0.095"/>					
+					<rotate x="0" y="1" z="0" angle="15"/>	
+					<rotate x="0" y="0" z="1" angle="-93"/>										
+					<scale x="0.11" y="0.25" z="0.09999"/>									
+					<object type="primitive" name="cone">	
+						<diffuse r="1" g="1" b="1"/>	
+					</object>	
+					</transblock>				
+					<transblock name= "outgoing_red">		
+					<translate x="-0.4" y="0.0" z="0.0"/>	<!--"-0.48"-->				
+					<rotate x="0" y="0" z="1" angle="-78"/>						
+					<scale x="0.02" y="0.7" z="0.025"/>									
+					<object type="primitive" name="cylinder">	
+						<diffuse r="1" g="0" b="0"/>	
+					</object>
+					</transblock>					
+					<transblock name= "outgoing_orange">		
+					<translate x="-0.4" y="-0.02" z="0.0"/>					
+					<rotate x="0" y="0" z="1" angle="-78"/>						
+					<scale x="0.02" y="0.7" z="0.025"/>									
+					<object type="primitive" name="cylinder">	
+						<diffuse r="1.0" g="0.025" b="0.0"/>	
+					</object>
+					</transblock>
+					<transblock name= "outgoing_yellow">		
+					<translate x="-0.4" y="-0.04" z="0.0"/>					
+					<rotate x="0" y="0" z="1" angle="-78"/>						
+					<scale x="0.02" y="0.7" z="0.025"/>									
+					<object type="primitive" name="cylinder">	
+						<diffuse r="1" g="1" b="0"/>	
+					</object>
+					</transblock>
+					<transblock name= "outgoing_green">		
+					<translate x="-0.4" y="-0.06" z="0.0"/>					
+					<rotate x="0" y="0" z="1" angle="-78"/>						
+					<scale x="0.02" y="0.7" z="0.025"/>									
+					<object type="primitive" name="cylinder">	
+						<diffuse r="0" g="1" b="0"/>	
+					</object>
+					</transblock>
+					<transblock name= "outgoing_blue">		
+					<translate x="-0.4" y="-0.08" z="0.0"/>					
+					<rotate x="0" y="0" z="1" angle="-78"/>						
+					<scale x="0.02" y="0.7" z="0.025"/>									
+					<object type="primitive" name="cylinder">	
+						<diffuse r="0" g=".025" b="1"/>	
+					</object>
+					</transblock>
+					<transblock name= "outgoing_purple">		
+					<translate x="-0.4" y="-0.1" z="0.0"/>					
+					<rotate x="0" y="0" z="1" angle="-78"/>						
+					<scale x="0.02" y="0.7" z="0.025"/>									
+					<object type="primitive" name="cylinder">	
+						<diffuse r="1" g="0" b="1"/>	
+					</object>
+					</transblock>					
+			</object>
+		</transblock>
+	
+		
+	</object>		
+</scenefile>
