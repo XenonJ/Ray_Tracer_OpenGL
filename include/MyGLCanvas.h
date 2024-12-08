@@ -89,10 +89,15 @@ private:
 	void resize(int x, int y, int w, int h);
 	void updateCamera(int width, int height);
 
+	// vertex buffer
+	void initializeVertexBuffer();
+	GLuint vao;
+	GLuint vbo;
+	std::vector<float> pixelIndices;
+
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;
 	ply* myObjectPLY;
-	ply* myEnvironmentPLY;
 
 	glm::mat4 perspectiveMatrix;
 

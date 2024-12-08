@@ -34,27 +34,21 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	myTextureManager = new TextureManager();
 	myShaderManager = new ShaderManager();
 	// myObjectPLY = new ply("./data/sphere.ply");
-	// myEnvironmentPLY = new ply("./data/sphere.ply");
 }
 
 MyGLCanvas::~MyGLCanvas() {
 	delete myTextureManager;
 	delete myShaderManager;
 	delete myObjectPLY;
-	delete myEnvironmentPLY;
 }
 
 void MyGLCanvas::initShaders() {
-	myTextureManager->loadTexture("environMap", "./data/ppm/sphere-map-market.ppm");
+	printf("init shaders\n");
 	myTextureManager->loadTexture("objectTexture", "./data/ppm/brick.ppm");
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	// myObjectPLY->buildArrays();
 	// myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
-
-	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
-	// myEnvironmentPLY->buildArrays();
-	// myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
 }
 
 void MyGLCanvas::draw() {
@@ -76,6 +70,7 @@ void MyGLCanvas::draw() {
 		if (firstTime == true) {
 			firstTime = false;
 			initShaders();
+			initializeVertexBuffer();
 		}
 	}
 
@@ -87,43 +82,34 @@ void MyGLCanvas::draw() {
 }
 
 void MyGLCanvas::drawScene() {
-	// glm::mat4 viewMatrix = glm::lookAt(eyePosition, lookatPoint, glm::vec3(0.0f, 1.0f, 0.0f));
+    glUseProgram(myShaderManager->getShaderProgram("objectShaders")->programID);
 
-	// viewMatrix = glm::rotate(viewMatrix, TO_RADIANS(rotWorldVec.x), glm::vec3(1.0f, 0.0f, 0.0f));
-	// viewMatrix = glm::rotate(viewMatrix, TO_RADIANS(rotWorldVec.y), glm::vec3(0.0f, 1.0f, 0.0f));
-	// viewMatrix = glm::rotate(viewMatrix, TO_RADIANS(rotWorldVec.z), glm::vec3(0.0f, 0.0f, 1.0f));
+    // bind vao
+    glBindVertexArray(vao);
 
-	// glm::mat4 modelMatrix = glm::mat4(1.0);
-	// modelMatrix = glm::rotate(modelMatrix, TO_RADIANS(rotVec.x), glm::vec3(1.0f, 0.0f, 0.0f));
-	// modelMatrix = glm::rotate(modelMatrix, TO_RADIANS(rotVec.y), glm::vec3(0.0f, 1.0f, 0.0f));
-	// modelMatrix = glm::rotate(modelMatrix, TO_RADIANS(rotVec.z), glm::vec3(0.0f, 0.0f, 1.0f));
-	// modelMatrix = glm::scale(modelMatrix, glm::vec3(scaleFactor, scaleFactor, scaleFactor));
+    // pass Uniform
+    GLint eyeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "eyePosition");
+    GLint lookVecLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lookVec");
+    GLint upVecLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "upVec");
+    GLint viewAngleLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "viewAngle");
+    GLint nearLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "nearPlane");
+    GLint widthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenWidth");
+    GLint heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenHeight");
 
-	// glm::vec4 lookVec(0.0f, 0.0f, -1.0f, 0.0f);
+	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
+	glUniform3fv(lookVecLoc, 1, glm::value_ptr(camera->getLookVector()));
+	glUniform3fv(upVecLoc, 1, glm::value_ptr(camera->getUpVector()));
+	glUniform1f(viewAngleLoc, camera->getViewAngle());
+	glUniform1f(nearLoc, camera->getNearPlane());
+	glUniform1f(widthLoc, camera->getScreenWidth());
+	glUniform1f(heightLoc, camera->getScreenHeight());
 
-	// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-	// glEnable(GL_TEXTURE_2D);
-	// //Pass first texture info to our shader 
-	// glActiveTexture(GL_TEXTURE0);
-	// glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("environMap"));
-	// glActiveTexture(GL_TEXTURE1);
-	// glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("objectTexture"));
+    // draw pixels
+    glDrawArrays(GL_POINTS, 0, w() * h());
 
-	// //first draw the object sphere
-	// glUseProgram(myShaderManager->getShaderProgram("objectShaders")->programID);
-
-	// //TODO: add variable binding
-
-	// myObjectPLY->renderVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
-
-
-
-	// //second draw the enviroment sphere
-	// glUseProgram(myShaderManager->getShaderProgram("environmentShaders")->programID);
-
-	// //TODO: add variable binding
-
-	// myEnvironmentPLY->renderVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
+    // release
+    glBindVertexArray(0);
+    glUseProgram(0);
 }
 
 
@@ -167,6 +153,7 @@ int MyGLCanvas::handle(int e) {
 
 void MyGLCanvas::resize(int x, int y, int w, int h) {
 	Fl_Gl_Window::resize(x, y, w, h);
+	initializeVertexBuffer();
 	puts("resize called");
 }
 
@@ -175,9 +162,6 @@ void MyGLCanvas::reloadShaders() {
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	// myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
-
-	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
-	// myEnvironmentPLY->bindVBO(myShaderManager->getShaderProgram("environmentShaders")->programID);
 
 	invalidate();
 }
@@ -291,4 +275,42 @@ void MyGLCanvas::bindScene() {
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_BUFFER, texture);
 	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
+}
+
+void MyGLCanvas::initializeVertexBuffer() {
+	// release
+    if (vao) {
+        glDeleteVertexArrays(1, &vao);
+        vao = 0;
+    }
+    if (vbo) {
+        glDeleteBuffers(1, &vbo);
+        vbo = 0;
+    }
+
+    pixelIndices.clear();
+    for (int j = 0; j < h(); j++) {
+        for (int i = 0; i < w(); i++) {
+            pixelIndices.push_back(float(i));
+            pixelIndices.push_back(float(j));
+        }
+    }
+
+    // VAO
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    // VBO
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    // upload VBO
+    glBufferData(GL_ARRAY_BUFFER, pixelIndices.size() * sizeof(float), pixelIndices.data(), GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+	// release
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }

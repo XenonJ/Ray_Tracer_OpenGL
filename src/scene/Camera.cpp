@@ -414,3 +414,7 @@ void Camera::printMat4(const glm::mat4 &mat) {
   }
   std::cout << std::endl;
 }
+
+float Camera::getFilmPlanDepth() {
+  return 2 * glm::tan(viewAngle / 2) * nearPlane;
+}
