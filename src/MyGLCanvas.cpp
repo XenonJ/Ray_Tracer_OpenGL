@@ -104,6 +104,15 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
 
+	// pass texture buffer
+	if (this->meshTextureBuffer) {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_BUFFER, meshTextureBuffer);
+
+		GLint meshLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshTexture");
+		glUniform1i(meshLoc, 0);
+	}
+
     // draw pixels
     glDrawArrays(GL_POINTS, 0, w() * h());
 
@@ -198,6 +207,7 @@ void MyGLCanvas::loadSceneFile(const char* filenamePath) {
 		this->scene = new SceneGraph();
         flatSceneData();
 		this->scene->buildKDTree();
+		this->bindScene();
 	}
 }
 
@@ -262,6 +272,7 @@ void MyGLCanvas::setSegments() {
 	}
 }
 
+// bind scene meshes into gl texture buffer
 void MyGLCanvas::bindScene() {
 	GLuint tbo, texture;
 	glGenBuffers(1, &tbo);
@@ -269,12 +280,15 @@ void MyGLCanvas::bindScene() {
 
 	std::vector<float> array;
 	this->scene->buildArray(array);
+	printf("build array complete\n");
 
 	glBufferData(GL_TEXTURE_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
 
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_BUFFER, texture);
 	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
+
+	this->meshTextureBuffer = texture;
 }
 
 void MyGLCanvas::initializeVertexBuffer() {

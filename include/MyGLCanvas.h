@@ -95,6 +95,9 @@ private:
 	GLuint vbo;
 	std::vector<float> pixelIndices;
 
+	// texture buffer
+	GLuint meshTextureBuffer;
+
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;
 	ply* myObjectPLY;

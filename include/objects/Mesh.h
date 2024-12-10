@@ -87,7 +87,7 @@ public:
 };
 
 class Mesh {
-private:
+public:
     Vertex** vertices;
     Edge** edges;
     Face** faces;

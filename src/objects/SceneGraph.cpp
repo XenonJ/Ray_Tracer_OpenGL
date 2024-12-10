@@ -102,19 +102,24 @@ float SceneGraphNode::intersect(glm::vec3 origin, glm::vec3 direction, glm::vec3
 */
 bool SceneGraphNode::buildArray(std::vector<float>& array) {
     for (auto mesh : this->shape->graphs) {
+        int i = 0;
         for (Face* f : *mesh->getFaceIterator()) {
             Vertex* const* v = f->getVertices();
             // 1 - 9
             for (int i = 0; i < 3; i++) {
-                array.push_back(v[i]->getPos().x);
-                array.push_back(v[i]->getPos().y);
-                array.push_back(v[i]->getPos().z);
+                glm::vec3 worldPosition = this->getTransformationMat() * glm::vec4(v[i]->getPos(), 1.0f);
+                printf("x, y, z: %f, %f, %f\n", worldPosition.x, worldPosition.y, worldPosition.z);
+                array.push_back(worldPosition.x);
+                array.push_back(worldPosition.y);
+                array.push_back(worldPosition.z);
             }
             // 10 - 18
             for (int i = 0; i < 3; i++) {
-                array.push_back(v[i]->getNormals().x);
-                array.push_back(v[i]->getNormals().y);
-                array.push_back(v[i]->getNormals().z);
+                glm::vec3 worldNormal = glm::inverse(glm::transpose(this->getTransformationMat())) * glm::vec4(v[i]->getNormals(), 1.0f);
+                printf("normal x, y, z: %f, %f, %f\n", worldNormal.x, worldNormal.y, worldNormal.z);
+                array.push_back(worldNormal.x);
+                array.push_back(worldNormal.y);
+                array.push_back(worldNormal.z);
             }
             // 19 - 21
             array.push_back(this->material.cDiffuse.r);
@@ -126,6 +131,7 @@ bool SceneGraphNode::buildArray(std::vector<float>& array) {
             array.push_back(0.0f);
         }
     }
+    return true;
 }
 
 bool SceneGraph::buildArray(std::vector<float>& array) {
@@ -134,6 +140,7 @@ bool SceneGraph::buildArray(std::vector<float>& array) {
             return false;
         }
     }
+    printf("array[1]: %f\n", array[1]);
     return true;
 }
 
