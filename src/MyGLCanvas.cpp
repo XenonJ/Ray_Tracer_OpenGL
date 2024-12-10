@@ -44,7 +44,7 @@ MyGLCanvas::~MyGLCanvas() {
 
 void MyGLCanvas::initShaders() {
 	printf("init shaders\n");
-	myTextureManager->loadTexture("objectTexture", "./data/ppm/brick.ppm");
+	myTextureManager->loadTexture("noiseTex", "./data/ppm/noise.ppm");
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	// myObjectPLY->buildArrays();

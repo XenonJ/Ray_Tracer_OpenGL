@@ -7,12 +7,19 @@ in vec3 rayDirection;
 const float PI = 3.14159265359;
 const float stepSize = 0.25;
 vec3 worldPosition = rayOrigin + rayDirection * 10000;
+uniform sampler2D noiseTex;
 
-#define bottom -2
-#define top 2
-#define width 5
+#define bottom -0.5
+#define top 0.5
+#define width 80
 
 out vec4 outputColor;
+
+float getDensity(sampler2D noisetex, vec3 pos) {
+    vec2 coord = pos.xz * 0.0025;
+    float noise = texture(noisetex, coord).x;
+    return noise;
+}
 
 vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
     vec3 viewDirection = normalize(worldPosition - cameraPosition);
@@ -53,19 +60,26 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
         }
     }
 
+	
     // Calculate intersection point
     vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
-
+	
+	float len1 = length(point - cameraPosition);     
+	float len2 = length(worldPosition - cameraPosition); 
+		if(len2<len1) {
+			return vec4(0);
+		}
     // Ray marching
     for (int i = 0; i < 10000; i++) {
         point += step;
+		// Early exit
         if (point.x < boxMin.x || point.x > boxMax.x ||
             point.y < boxMin.y || point.y > boxMax.y ||
             point.z < boxMin.z || point.z > boxMax.z) {
             break;
         }
 
-        float density = 0.05;
+        float density = getDensity(noiseTex, point) * 0.2;
         vec4 color = vec4(1.0, 1.0, 1.0, 1.0) * density;
         colorSum = colorSum + color * (1.0 - colorSum.a);
 
