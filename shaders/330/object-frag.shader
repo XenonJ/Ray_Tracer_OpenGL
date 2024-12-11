@@ -1,5 +1,10 @@
 #version 330
 
+#define baseBright  vec3(1.26,1.25,1.29)    // base color -- light
+#define baseDark    vec3(0.31,0.31,0.32)    // base color -- dark
+#define lightBright vec3(1.29, 1.17, 1.05)  // light color -- light
+#define lightDark   vec3(0.7,0.75,0.8)      // light color -- dark
+
 uniform samplerBuffer meshTexture;
 uniform float meshSize;
 
@@ -7,16 +12,17 @@ in vec3 pixelColor;
 in vec3 rayOrigin;
 in vec3 rayDirection;
 in vec3 lightDirection;
+uniform vec3 lightPos;
 uniform int frameCounter;
 
 const float PI = 3.14159265359;
-const float stepSize = 0.25;
+const float stepSize = 0.05;
 vec3 worldPosition = rayOrigin + rayDirection * 10000;
 uniform sampler2D noiseTex;
 
 #define bottom -5
 #define top 5
-#define width 100
+#define width 500
 
 out vec4 outputColor;
 
@@ -37,7 +43,7 @@ float getDensity(sampler2D noisetex, vec3 pos) {
 
 	noise = noise * weight;
 
-	if(noise < 0.6) {
+	if(noise < 0.8) {
 		noise = 0.0;
 	}
     return noise;
@@ -99,9 +105,16 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
 			return vec4(0);
 		}
     // Ray marching
-    for (int i = 0; i < 100; i++) {
-        point += step;
-		// Early exit
+    float baseStepSize = stepSize;
+    float maxJitter = baseStepSize * 0.5;
+    
+    for (int i = 0; i < 1000; i++) {
+        vec2 noiseCoord = (point.xz + vec2(frameCounter)) * 0.01;
+        float jitter = (texture(noiseTex, noiseCoord).r * 2.0 - 1.0) * maxJitter;
+        vec3 stepWithJitter = step * (1.0 + jitter + 0.01 * i);
+        point += stepWithJitter;
+
+        // Early exit
         if (point.x < boxMin.x || point.x > boxMax.x ||
             point.y < boxMin.y || point.y > boxMax.y ||
             point.z < boxMin.z || point.z > boxMax.z) {
@@ -109,8 +122,17 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
         }
 
         float density = getDensity(noiseTex, point) ;
-        vec4 color = vec4(1.0, 1.0, 1.0, 1.0) * density * 0.05;
-        colorSum = colorSum + color * (1.0 - colorSum.a);
+		vec3 L = normalize(lightPos - point);
+		float lightDensity = getDensity(noiseTex, point + L);
+		float delta = clamp(density - lightDensity, 0.0, 1.0);
+		density *= 0.5;
+
+		vec3 base = mix(baseBright, baseDark, density) * density * 1;
+		vec3 light = mix(lightDark, lightBright, delta);  
+
+        vec4 color = vec4(base * light, density * 1);
+		// color.a *= 0.25;
+        colorSum = colorSum + color * (1.0 - colorSum.a) ;
 
         if (colorSum.a > 0.95) {
             break;
