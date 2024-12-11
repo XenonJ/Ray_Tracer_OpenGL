@@ -101,6 +101,12 @@ float SceneGraphNode::intersect(glm::vec3 origin, glm::vec3 direction, glm::vec3
     22 - 24: mesh type
 */
 bool SceneGraphNode::buildArray(std::vector<float>& array) {
+    // printf("transformation mat: \n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
+    //     this->getTransformationMat()[0][0], this->getTransformationMat()[0][1], this->getTransformationMat()[0][2], this->getTransformationMat()[0][3], 
+    //     this->getTransformationMat()[1][0], this->getTransformationMat()[1][1], this->getTransformationMat()[1][2], this->getTransformationMat()[1][3], 
+    //     this->getTransformationMat()[2][0], this->getTransformationMat()[2][1], this->getTransformationMat()[2][2], this->getTransformationMat()[2][3], 
+    //     this->getTransformationMat()[3][0], this->getTransformationMat()[3][1], this->getTransformationMat()[3][2], this->getTransformationMat()[3][3]
+    // );
     for (auto mesh : this->shape->graphs) {
         int i = 0;
         for (Face* f : *mesh->getFaceIterator()) {
@@ -108,7 +114,7 @@ bool SceneGraphNode::buildArray(std::vector<float>& array) {
             // 1 - 9
             for (int i = 0; i < 3; i++) {
                 glm::vec3 worldPosition = this->getTransformationMat() * glm::vec4(v[i]->getPos(), 1.0f);
-                printf("x, y, z: %f, %f, %f\n", worldPosition.x, worldPosition.y, worldPosition.z);
+                // printf("x, y, z: %f, %f, %f\n", worldPosition.x, worldPosition.y, worldPosition.z);
                 array.push_back(worldPosition.x);
                 array.push_back(worldPosition.y);
                 array.push_back(worldPosition.z);
@@ -116,7 +122,7 @@ bool SceneGraphNode::buildArray(std::vector<float>& array) {
             // 10 - 18
             for (int i = 0; i < 3; i++) {
                 glm::vec3 worldNormal = glm::inverse(glm::transpose(this->getTransformationMat())) * glm::vec4(v[i]->getNormals(), 1.0f);
-                printf("normal x, y, z: %f, %f, %f\n", worldNormal.x, worldNormal.y, worldNormal.z);
+                // printf("normal x, y, z: %f, %f, %f\n", worldNormal.x, worldNormal.y, worldNormal.z);
                 array.push_back(worldNormal.x);
                 array.push_back(worldNormal.y);
                 array.push_back(worldNormal.z);
@@ -140,7 +146,6 @@ bool SceneGraph::buildArray(std::vector<float>& array) {
             return false;
         }
     }
-    printf("array[1]: %f\n", array[1]);
     return true;
 }
 

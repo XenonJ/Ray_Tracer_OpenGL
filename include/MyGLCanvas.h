@@ -97,6 +97,7 @@ private:
 
 	// texture buffer
 	GLuint meshTextureBuffer;
+	int meshSize;
 
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;

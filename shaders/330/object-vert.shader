@@ -11,6 +11,7 @@ uniform float viewAngle;
 uniform float nearPlane;
 uniform float screenWidth;
 uniform float screenHeight;
+uniform vec3 lightPos;
 
 // index
 in vec2 pixelIndex; // [0, screenWidth-1] and [0, screenHeight-1]
@@ -19,6 +20,7 @@ in vec2 pixelIndex; // [0, screenWidth-1] and [0, screenHeight-1]
 out vec3 rayOrigin;     // ray origin (eye position)
 out vec3 rayDirection;  // ray dir
 out vec3 pixelColor;
+out vec3 lightDirection;
 
 void main() {
 	float ndcX = (pixelIndex.x / screenWidth) * 2.0 - 1.0;
@@ -42,6 +44,7 @@ void main() {
 	// gl_Position = vec4(S, 1.0f);
 	rayOrigin = eyePosition;
 	rayDirection = normalize(S - eyePosition);
+	lightDirection = normalize(S - lightPos);
 }
 
 // cpp version

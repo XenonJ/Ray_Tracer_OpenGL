@@ -26,8 +26,8 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	camera->orientLookAt(eyePosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
 	// Shape
-	segmentsX = 20;
-	segmentsY = 20;
+	segmentsX = 3;
+	segmentsY = 3;
 
 	firstTime = true;
 
@@ -95,6 +95,7 @@ void MyGLCanvas::drawScene() {
     GLint nearLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "nearPlane");
     GLint widthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenWidth");
     GLint heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenHeight");
+    GLint lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lightPos");
 
 	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
 	glUniform3fv(lookVecLoc, 1, glm::value_ptr(camera->getLookVector()));
@@ -104,13 +105,21 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
 
-	// pass texture buffer
+	// pass scene data
 	if (this->meshTextureBuffer) {
+		// pass texture buffer
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_BUFFER, meshTextureBuffer);
 
 		GLint meshLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshTexture");
+		GLint meshSizeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshSize");
 		glUniform1i(meshLoc, 0);
+		glUniform1f(meshSizeLoc, float(meshSize));
+		// pass light
+		SceneLightData lightData;
+		parser->getLightData(0, lightData);
+		glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
+		// printf("mesh size: %d", meshSize);
 	}
 
     // draw pixels
@@ -266,7 +275,8 @@ void MyGLCanvas::flatSceneDataRec(SceneNode* node, glm::mat4 curMat) {
 
 void MyGLCanvas::setSegments() {
 	// set segments to be 20 for now
-	Shape::setSegments(20, 20);
+	Shape::setSegments(this->segmentsX, this->segmentsY);
+	printf("setting segments to %d, %d\n", this->segmentsX, this->segmentsY);
 	if(this->scene != NULL) {
 		this->scene->calculate();
 	}
@@ -289,6 +299,8 @@ void MyGLCanvas::bindScene() {
 	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
 
 	this->meshTextureBuffer = texture;
+	this->meshSize = array.size() / 24;
+	printf("mesh size: %d\n", this->meshSize);
 }
 
 void MyGLCanvas::initializeVertexBuffer() {
