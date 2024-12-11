@@ -13,15 +13,31 @@ const float stepSize = 0.25;
 vec3 worldPosition = rayOrigin + rayDirection * 10000;
 uniform sampler2D noiseTex;
 
-#define bottom -0.5
-#define top 0.5
-#define width 80
+#define bottom -5
+#define top 5
+#define width 100
 
 out vec4 outputColor;
 
 float getDensity(sampler2D noisetex, vec3 pos) {
-    vec2 coord = pos.xz * 0.0025;
+
+	// Density falloff
+	float mid = (bottom + top) / 2.0;
+    float h = top - bottom;
+    float weight = 1.0 - 2.0 * abs(mid - pos.y) / h;
+    weight = pow(weight, 0.5);
+	// Get noise
+	vec2 coord = pos.xz * 0.015;
     float noise = texture(noisetex, coord).x;
+	noise += texture(noisetex, coord * 3.5).x / 3.5;
+	noise += texture(noisetex, coord * 12.25).x / 12.25;
+	noise += texture(noisetex, coord * 30.625).x / 30.625;
+
+	noise = noise * weight;
+
+	if(noise < 0.6) {
+		noise = 0.0;
+	}
     return noise;
 }
 
@@ -81,7 +97,7 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
 			return vec4(0);
 		}
     // Ray marching
-    for (int i = 0; i < 10000; i++) {
+    for (int i = 0; i < 100; i++) {
         point += step;
 		// Early exit
         if (point.x < boxMin.x || point.x > boxMax.x ||
@@ -90,8 +106,8 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
             break;
         }
 
-        float density = getDensity(noiseTex, point) * 0.2;
-        vec4 color = vec4(1.0, 1.0, 1.0, 1.0) * density;
+        float density = getDensity(noiseTex, point) ;
+        vec4 color = vec4(1.0, 1.0, 1.0, 1.0) * density * 0.05;
         colorSum = colorSum + color * (1.0 - colorSum.a);
 
         if (colorSum.a > 0.95) {
@@ -180,7 +196,7 @@ vec4 calculateRGB() {
 
 void main()
 {
-    outputColor = calculateRGB();
+    // outputColor = calculateRGB();
     // outputColor = vec4(meshSize / 200, 1.0f, 1.0f, 1.0f);
-	// outputColor = mix(vec4(pixelColor, 1.0), renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000), 0.5);
+	outputColor = mix(vec4(meshSize / 200, 1.0f, 1.0f, 1.0f), renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000), 0.5);
 }
