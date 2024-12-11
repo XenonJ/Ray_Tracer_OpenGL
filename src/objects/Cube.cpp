@@ -41,93 +41,14 @@ void Cube::drawTriangleMeshFromFaces() {
 }
 
 void Cube::draw() {
-    // Define transformation matrices (in draw, using glTranslatef and glRotatef)
-    glPushMatrix();
-
-    // Front face
-    glTranslatef(0.0f, 0.0f, 0.5f);  // Move front face to z = 0.5
     drawTriangleMeshFromFaces();
-    glPopMatrix();
 
-    glPushMatrix();
-    // Back face
-    glTranslatef(0.0f, 0.0f, -0.5f);  // Move back face to z = -0.5
-    glRotatef(180.0f, 1.0f, 0.0f, 0.0f);  // Rotate back face by 180 degrees along x-axis
-    drawTriangleMeshFromFaces();
-    glPopMatrix();
-
-    glPushMatrix();
-    // Right face
-    glTranslatef(0.5f, 0.0f, 0.0f);  // Move right face to x = 0.5
-    glRotatef(90.0f, 0.0f, 1.0f, 0.0f);  // Rotate right face by 90 degrees along y-axis
-    drawTriangleMeshFromFaces();
-    glPopMatrix();
-
-    glPushMatrix();
-    // Left face
-    glTranslatef(-0.5f, 0.0f, 0.0f);  // Move left face to x = -0.5
-    glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);  // Rotate left face by -90 degrees along y-axis
-    drawTriangleMeshFromFaces();
-    glPopMatrix();
-
-    glPushMatrix();
-    // Bottom face
-    glTranslatef(0.0f, -0.5f, 0.0f);  // Move bottom face to y = -0.5
-    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);  // Rotate bottom face by 90 degrees along x-axis
-    drawTriangleMeshFromFaces();
-    glPopMatrix();
-
-    glPushMatrix();
-    // Top face
-    glTranslatef(0.0f, 0.5f, 0.0f);  // Move top face to y = 0.5
-    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);  // Rotate top face by -90 degrees along x-axis
-    drawTriangleMeshFromFaces();
-    glPopMatrix();
 }
 
 void Cube::drawNormal() {
     glColor3f(1.0f, .0f, .0f);
 
-    // Front face
-    glPushMatrix();
-    glTranslatef(0.0f, 0.0f, 0.5f);  // Move front face to z = 0.5
-    drawNormalForSingleFace();       // Draw normals for the front face
-    glPopMatrix();
-
-    // Back face
-    glPushMatrix();
-    glTranslatef(0.0f, 0.0f, -0.5f);  // Move back face to z = -0.5
-    glRotatef(180.0f, 1.0f, 0.0f, 0.0f);  // Rotate back face by 180 degrees along x-axis
-    drawNormalForSingleFace();        // Draw normals for the back face
-    glPopMatrix();
-
-    // Right face
-    glPushMatrix();
-    glTranslatef(0.5f, 0.0f, 0.0f);  // Move right face to x = 0.5
-    glRotatef(90.0f, 0.0f, 1.0f, 0.0f);  // Rotate right face by 90 degrees along y-axis
-    drawNormalForSingleFace();        // Draw normals for the right face
-    glPopMatrix();
-
-    // Left face
-    glPushMatrix();
-    glTranslatef(-0.5f, 0.0f, 0.0f);  // Move left face to x = -0.5
-    glRotatef(-90.0f, 0.0f, 1.0f, 0.0f);  // Rotate left face by -90 degrees along y-axis
-    drawNormalForSingleFace();         // Draw normals for the left face
-    glPopMatrix();
-
-    // Bottom face
-    glPushMatrix();
-    glTranslatef(0.0f, -0.5f, 0.0f);  // Move bottom face to y = -0.5
-    glRotatef(90.0f, 1.0f, 0.0f, 0.0f);  // Rotate bottom face by 90 degrees along x-axis
-    drawNormalForSingleFace();        // Draw normals for the bottom face
-    glPopMatrix();
-
-    // Top face
-    glPushMatrix();
-    glTranslatef(0.0f, 0.5f, 0.0f);  // Move top face to y = 0.5
-    glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);  // Rotate top face by -90 degrees along x-axis
-    drawNormalForSingleFace();        // Draw normals for the top face
-    glPopMatrix();
+    drawNormalForSingleFace();
 }
 
 void Cube::drawNormalForSingleFace() {
@@ -148,61 +69,82 @@ void Cube::drawNormalForSingleFace() {
 void Cube::calculate() {
     int vcount = (m_segmentsX + 1) * (m_segmentsY + 1);
     int fcount = m_segmentsX * m_segmentsY * 2;
-    Mesh* g = new Mesh(vcount, fcount);
 
     float stepX = 1.0f / m_segmentsX;
     float stepY = 1.0f / m_segmentsY;
 
-    // Calculate all vertices
-    for (int i = 0; i <= m_segmentsX; i++) {
-        for (int j = 0; j <= m_segmentsY; j++) {
-            float x = i * stepX - 0.5f;
-            float y = j * stepY - 0.5f;
-            float z = 0.0f;
+    // Define transformation matrices for six faces
+    glm::mat4 faceTransforms[6] = {
+        // Front face (z = 0.5)
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f)),
+        // Back face (z = -0.5)
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.5f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+        // Right face (x = 0.5)
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.0f, 0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+        // Left face (x = -0.5)
+        glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f)),
+        // Top face (y = 0.5)
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f)),
+        // Bottom face (y = -0.5)
+        glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f))
+    };
 
-            glm::vec3 position(x, y, z);
-            Vertex* v = new Vertex(position);
-            v->setNormal(glm::vec3(0.0f, 0.0f, 1.0f));
-            g->addVertex(v);
+    // Define normal vectors for each face
+    glm::vec3 faceNormals[6] = {
+        glm::vec3(0.0f, 0.0f, 1.0f),   // Front normal
+        glm::vec3(0.0f, 0.0f, -1.0f),  // Back normal
+        glm::vec3(1.0f, 0.0f, 0.0f),   // Right normal
+        glm::vec3(-1.0f, 0.0f, 0.0f),  // Left normal
+        glm::vec3(0.0f, 1.0f, 0.0f),   // Top normal
+        glm::vec3(0.0f, -1.0f, 0.0f)   // Bottom normal
+    };
+
+    this->clearGraphs();  // Clear existing meshes
+
+    // Create mesh for each face
+    for (int face = 0; face < 6; face++) {
+        Mesh* g = new Mesh(vcount, fcount);
+        
+        // Calculate vertices
+        for (int i = 0; i <= m_segmentsX; i++) {
+            for (int j = 0; j <= m_segmentsY; j++) {
+                float x = i * stepX - 0.5f;
+                float y = j * stepY - 0.5f;
+                float z = 0.0f;
+
+                // Apply transformation matrix to vertex position
+                glm::vec4 transformedPos = faceTransforms[face] * glm::vec4(x, y, z, 1.0f);
+                glm::vec3 position(transformedPos.x, transformedPos.y, transformedPos.z);
+                
+                Vertex* v = new Vertex(position);
+                v->setNormal(faceNormals[face]);  // Set corresponding face normal
+                g->addVertex(v);
+            }
         }
-    }
 
-    // Calculate all faces
-    for (int i = 0; i < m_segmentsX; i++) {
-        for (int j = 0; j < m_segmentsY; j++) {
-            int index1 = i * (m_segmentsY + 1) + j;
-            int index2 = index1 + 1;
-            int index3 = (i + 1) * (m_segmentsY + 1) + j;
-            int index4 = index3 + 1;
+        // Calculate triangular faces
+        for (int i = 0; i < m_segmentsX; i++) {
+            for (int j = 0; j < m_segmentsY; j++) {
+                // Calculate vertex indices for the current quad
+                int index1 = i * (m_segmentsY + 1) + j;      // Bottom-left
+                int index2 = index1 + 1;                      // Bottom-right
+                int index3 = (i + 1) * (m_segmentsY + 1) + j; // Top-left
+                int index4 = index3 + 1;                      // Top-right
 
-            auto vertices = g->getVertices();
-            g->addFace(new Face(vertices[index1], vertices[index3], vertices[index4]));
-            g->addFace(new Face(vertices[index1], vertices[index4], vertices[index2]));
+                auto vertices = g->getVertices();
+                // Create two triangles for each quad
+                g->addFace(new Face(vertices[index1], vertices[index4], vertices[index3])); // First triangle
+                g->addFace(new Face(vertices[index1], vertices[index2], vertices[index4])); // Second triangle
+            }
         }
+
+        this->graphs.push_back(g);
     }
-
-    // glm::mat4 Matrics[6];
-    // Matrics[0] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, 0.5f));
-    // Matrics[1] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -0.5f)) *
-    //         glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    // Matrics[2] = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.0f, 0.0f)) *
-    //         glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    // Matrics[3] = glm::translate(glm::mat4(1.0f), glm::vec3(-0.5f, 0.0f, 0.0f)) *
-    //         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    // Matrics[4] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, -0.5f, 0.0f)) *
-    //         glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    // Matrics[5] = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.5f, 0.0f)) *
-    //         glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-
-    this->clearGraphs();
-    // for (int i = 0; i < 6; i++) {
-    this->graphs.push_back(g);
-    // }
-    // for (Mesh* g : this->graphs){
-    //     g->calculateVertexNormal();
-    // }
-    // delete g;
-
 }
 
 float Cube::intersect(glm::vec4 ray, glm::vec4 eye) {
