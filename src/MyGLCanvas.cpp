@@ -4,7 +4,6 @@
 
 MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window(x, y, w, h, l) {
 	mode(FL_OPENGL3 | FL_RGB | FL_ALPHA | FL_DEPTH | FL_DOUBLE);
-
 	// Scene
 	parser = NULL;
 	scene = NULL;
@@ -105,6 +104,13 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
 
+	frameCounter++;
+	if (frameCounter == INT_MAX)
+	{
+		frameCounter = 0;
+	}
+	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);
+	
 	// pass scene data
 	if (this->meshTextureBuffer) {
 		// pass texture buffer

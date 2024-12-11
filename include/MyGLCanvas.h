@@ -35,6 +35,9 @@
 class MyGLCanvas : public Fl_Gl_Window {
 public:
 
+	// Frame counter
+	int frameCounter = 0;
+
 	// Camera
 	float scale;
 	Camera* camera;

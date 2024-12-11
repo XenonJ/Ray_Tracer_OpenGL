@@ -7,6 +7,7 @@ in vec3 pixelColor;
 in vec3 rayOrigin;
 in vec3 rayDirection;
 in vec3 lightDirection;
+uniform int frameCounter;
 
 const float PI = 3.14159265359;
 const float stepSize = 0.25;
@@ -28,6 +29,7 @@ float getDensity(sampler2D noisetex, vec3 pos) {
     weight = pow(weight, 0.5);
 	// Get noise
 	vec2 coord = pos.xz * 0.015;
+	coord += frameCounter * 0.001;
     float noise = texture(noisetex, coord).x;
 	noise += texture(noisetex, coord * 3.5).x / 3.5;
 	noise += texture(noisetex, coord * 12.25).x / 12.25;
