@@ -94,6 +94,7 @@ void MyGLCanvas::drawScene() {
     GLint nearLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "nearPlane");
     GLint widthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenWidth");
     GLint heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenHeight");
+    GLint lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lightPos");
 
 	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
 	// printf("eyepoint: %f %f %f\n", 
@@ -105,6 +106,7 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(nearLoc, camera->getNearPlane());
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
+	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));	// default light
 
 	frameCounter++;
 	if (frameCounter == INT_MAX)
@@ -114,25 +116,32 @@ void MyGLCanvas::drawScene() {
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);
 	
 	// pass scene data
-	if (this->meshTextureBuffer) {
-		// pass texture buffer
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_BUFFER, meshTextureBuffer);
+	if (this->parser || this->myObjectPLY) {
+		// pass texture buffers
+		for (size_t i = 0; i < this->meshTextureBuffers.size(); ++i) {
+			glActiveTexture(GL_TEXTURE0 + i);
+			glBindTexture(GL_TEXTURE_BUFFER, this->meshTextureBuffers[i]);
+			std::string uniformName = "meshBuffer[" + std::to_string(i) + "]";
+			GLuint location = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, uniformName.c_str());
+			glUniform1i(location, i); // Bind texture to the corresponding uniform
+		}
+    	GLint numMeshBuffersLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "numMeshBuffers");
+    	GLint maxTrianglesPerBufferLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "maxTrianglesPerBuffer");
+		glUniform1i(numMeshBuffersLoc, this->meshTextureBuffers.size());
+		size_t maxTrianglesPerBuffer = maxBufferSize / (floatsPerTriangle * sizeof(float));
+		glUniform1i(maxTrianglesPerBufferLoc, int(maxTrianglesPerBuffer));
+		// printf("num mesh buffers: %d, max triangles per buffer: %d\n", this->meshTextureBuffers.size(), int(maxTrianglesPerBuffer));
 
-		GLint meshLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshTexture");
+		// GLint meshLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshTexture");
 		GLint meshSizeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshSize");
-    	GLint lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lightPos");
-		glUniform1i(meshLoc, 0);
+		// glUniform1i(meshLoc, 0);
 		glUniform1f(meshSizeLoc, float(meshSize));
 		// pass light
 		SceneLightData lightData;
 		if (parser && parser->getLightData(0, lightData)) {
 			glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
 		}
-		else {
-			glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));
-		}
-		// printf("mesh size: %d", meshSize);
+		// printf("mesh size: %d\n", meshSize);
 	}
 
     // draw pixels
@@ -298,44 +307,85 @@ void MyGLCanvas::setSegments() {
 
 // bind scene meshes into gl texture buffer
 void MyGLCanvas::bindScene() {
-	GLuint tbo, texture;
-	glGenBuffers(1, &tbo);
-	glBindBuffer(GL_TEXTURE_BUFFER, tbo);
-
+	// build array
 	std::vector<float> array;
 	this->scene->buildArray(array);
 	printf("build array complete\n");
 
-	glBufferData(GL_TEXTURE_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
+	// calculate size
+	size_t maxTrianglesPerBuffer = maxBufferSize / (floatsPerTriangle * sizeof(float));
+	size_t totalTriangles = array.size() / floatsPerTriangle;
 
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_BUFFER, texture);
-	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
+	std::vector<GLuint> tboList, textureList;
 
-	this->meshTextureBuffer = texture;
-	this->meshSize = array.size() / 18;
-	printf("mesh size: %d\n", this->meshSize);
+	size_t start = 0;
+
+	while (start < totalTriangles) {
+        size_t end = std::min(start + maxTrianglesPerBuffer, totalTriangles);
+        size_t bufferSize = (end - start) * floatsPerTriangle;
+
+        // Create and upload buffer
+        GLuint tbo, texture;
+        glGenBuffers(1, &tbo);
+        glBindBuffer(GL_TEXTURE_BUFFER, tbo);
+
+        glBufferData(GL_TEXTURE_BUFFER, bufferSize * sizeof(float), &array[start * floatsPerTriangle], GL_STATIC_DRAW);
+
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_BUFFER, texture);
+        glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
+
+        // Store buffer and texture IDs
+        tboList.push_back(tbo);
+        textureList.push_back(texture);
+
+        start = end;
+    }
+
+	this->meshTextureBuffers = textureList;
+	this->meshSize = totalTriangles;
+	printf("Total buffers: %lu, Total triangles: %lu\n", textureList.size(), totalTriangles);
 }
 
 // bind scene meshes into gl texture buffer
 void MyGLCanvas::bindPLY() {
-	GLuint tbo, texture;
-	glGenBuffers(1, &tbo);
-	glBindBuffer(GL_TEXTURE_BUFFER, tbo);
-
 	std::vector<float> array;
 	this->myObjectPLY->buildArray(array);
 	printf("build array complete\n");
 
-	glBufferData(GL_TEXTURE_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
+	// calculate size
+	size_t maxTrianglesPerBuffer = maxBufferSize / (floatsPerTriangle * sizeof(float));
+	size_t totalTriangles = array.size() / floatsPerTriangle;
 
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_BUFFER, texture);
-	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
+	std::vector<GLuint> tboList, textureList;
 
-	this->meshTextureBuffer = texture;
-	this->meshSize = array.size() / 18;
-	printf("mesh size: %d\n", this->meshSize);
+	size_t start = 0;
+
+	while (start < totalTriangles) {
+        size_t end = std::min(start + maxTrianglesPerBuffer, totalTriangles);
+        size_t bufferSize = (end - start) * floatsPerTriangle;
+
+        // Create and upload buffer
+        GLuint tbo, texture;
+        glGenBuffers(1, &tbo);
+        glBindBuffer(GL_TEXTURE_BUFFER, tbo);
+
+        glBufferData(GL_TEXTURE_BUFFER, bufferSize * sizeof(float), &array[start * floatsPerTriangle], GL_STATIC_DRAW);
+
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_BUFFER, texture);
+        glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
+
+        // Store buffer and texture IDs
+        tboList.push_back(tbo);
+        textureList.push_back(texture);
+
+        start = end;
+    }
+
+	this->meshTextureBuffers = textureList;
+	this->meshSize = totalTriangles;
+	printf("Total buffers: %lu, Total triangles: %lu\n", textureList.size(), totalTriangles);
 }
 
 void MyGLCanvas::initializeVertexBuffer() {
@@ -379,9 +429,6 @@ void MyGLCanvas::initializeVertexBuffer() {
 void MyGLCanvas::loadPLY(std::string filename) {
 	delete myObjectPLY;
 	myObjectPLY = new ply(filename);
-	// myObjectPLY->printVertexList();
-	// myObjectPLY->printAttributes();
-	// myObjectPLY->printFaceList();
 	bindPLY();
 	camera->reset();
 	camera->setViewAngle(60.0f);

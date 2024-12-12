@@ -704,7 +704,7 @@ void ply::buildArray(std::vector<float>& array) {
 		for (int j = 0; j < 3; j++) {
 			// Print out the vertex
 			int index = faceList[i].vertexList[j];
-			cout << vertexList[index].x << "," << vertexList[index].y << "," << vertexList[index].z << endl;
+			// cout << vertexList[index].x << "," << vertexList[index].y << "," << vertexList[index].z << endl;
 			array.push_back(vertexList[index].x);
 			array.push_back(vertexList[index].y);
 			array.push_back(vertexList[index].z);

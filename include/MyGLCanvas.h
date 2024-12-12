@@ -102,8 +102,10 @@ private:
 	std::vector<float> pixelIndices;
 
 	// texture buffer
-	GLuint meshTextureBuffer;
+	std::vector<GLuint> meshTextureBuffers;
 	int meshSize;
+	size_t maxBufferSize = 16 * 1024 * 1024; // 16MB
+	size_t floatsPerTriangle = 18; // 18 float for a mesh
 
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;

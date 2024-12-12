@@ -7,7 +7,9 @@
     13 - 15: rgb
     16 - 18: mesh type
 */
-uniform samplerBuffer meshTexture;
+uniform int numMeshBuffers;
+uniform int maxTrianglesPerBuffer;
+uniform samplerBuffer meshBuffer[12];   // assume max 12 buffers
 uniform float meshSize; // mesh count
 uniform int frameCounter;   // incr per frame
 uniform sampler2D noiseTex; // noise texture to sample for cloud
@@ -161,13 +163,15 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
 }
 
 mesh getMesh(int index) {
+    int bufferIdx = index / maxTrianglesPerBuffer;
+    int localIdx = index % maxTrianglesPerBuffer;
     mesh ret;
-    ret.v1 = texelFetch(meshTexture, 6 * index).rgb;
-    ret.v2 = texelFetch(meshTexture, 6 * index + 1).rgb;
-    ret.v3 = texelFetch(meshTexture, 6 * index + 2).rgb;
-    ret.faceNormal = texelFetch(meshTexture, 6 * index + 3).rgb;
-    ret.diffuseColor = texelFetch(meshTexture, 6 * index + 4).rgb;
-    ret.type = texelFetch(meshTexture, 6 * index + 5).rgb;
+    ret.v1 = texelFetch(meshBuffer[bufferIdx], 6 * localIdx).rgb;
+    ret.v2 = texelFetch(meshBuffer[bufferIdx], 6 * localIdx + 1).rgb;
+    ret.v3 = texelFetch(meshBuffer[bufferIdx], 6 * localIdx + 2).rgb;
+    ret.faceNormal = texelFetch(meshBuffer[bufferIdx], 6 * localIdx + 3).rgb;
+    ret.diffuseColor = texelFetch(meshBuffer[bufferIdx], 6 * localIdx + 4).rgb;
+    ret.type = texelFetch(meshBuffer[bufferIdx], 6 * localIdx + 5).rgb;
     return ret;
 }
 
@@ -212,11 +216,10 @@ vec4 calculateRGB() {
 
 void main()
 {
-    // vec4 rtColor = calculateRGB();
-    // outputColor = rtColor;
+    vec4 rtColor = calculateRGB();
+    outputColor = rtColor;
     // vec3 somevec = rayOrigin + rayDirection * 1000;
     // vec4 newColor = renderCloud(rayOrigin, somevec);
-    vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
-	outputColor = mix(vec4(pixelColor, 1.0f), cloudColor, 0.5);
-    // outputColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    // vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
+	// outputColor = mix(vec4(pixelColor, 1.0f), cloudColor, 0.5);
 }
