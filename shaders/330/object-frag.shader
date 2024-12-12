@@ -45,7 +45,7 @@ float getDensity(sampler2D noisetex, vec3 pos) {
 
 struct mesh {
     vec3 v1, v2, v3;
-    vec3 n1, n2, n3;
+    vec3 faceNormal;
     vec3 diffuseColor;
     vec3 type;
 };
@@ -122,14 +122,12 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
 
 mesh getMesh(int index) {
     mesh ret;
-    ret.v1 = texelFetch(meshTexture, 8 * index).rgb;
-    ret.v2 = texelFetch(meshTexture, 8 * index + 1).rgb;
-    ret.v3 = texelFetch(meshTexture, 8 * index + 2).rgb;
-    ret.n1 = texelFetch(meshTexture, 8 * index + 3).rgb;
-    ret.n2 = texelFetch(meshTexture, 8 * index + 4).rgb;
-    ret.n3 = texelFetch(meshTexture, 8 * index + 5).rgb;
-    ret.diffuseColor = texelFetch(meshTexture, 8 * index + 6).rgb;
-    ret.type = texelFetch(meshTexture, 8 * index + 7).rgb;
+    ret.v1 = texelFetch(meshTexture, 6 * index).rgb;
+    ret.v2 = texelFetch(meshTexture, 6 * index + 1).rgb;
+    ret.v3 = texelFetch(meshTexture, 6 * index + 2).rgb;
+    ret.faceNormal = texelFetch(meshTexture, 6 * index + 3).rgb;
+    ret.diffuseColor = texelFetch(meshTexture, 6 * index + 4).rgb;
+    ret.type = texelFetch(meshTexture, 6 * index + 5).rgb;
     return ret;
 }
 
@@ -191,14 +189,13 @@ vec4 calculateRGB() {
     //     return vec4(1.0f);
     // }
     mesh m = getMesh(idx);
-    vec3 normal = normalize(cross(m.v2 - m.v1, m.v3 - m.v1));
-    color = vec4(m.diffuseColor * max(dot(lightDirection, normal), 0.0f), 1.0f);
+    color = vec4(m.diffuseColor * max(dot(lightDirection, m.faceNormal), 0.0f), 1.0f);
     return color;
 }
 
 void main()
 {
-    // outputColor = calculateRGB();
-    // outputColor = vec4(meshSize / 200, 1.0f, 1.0f, 1.0f);
-	outputColor = mix(vec4(meshSize / 200, 1.0f, 1.0f, 1.0f), renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000), 0.5);
+    // vec4 rtColor = calculateRGB();
+    vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
+	outputColor = mix(vec4(pixelColor, 1.0f), cloudColor, 0.5);
 }

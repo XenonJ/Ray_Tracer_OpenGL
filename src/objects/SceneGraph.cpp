@@ -96,9 +96,9 @@ float SceneGraphNode::intersect(glm::vec3 origin, glm::vec3 direction, glm::vec3
 /*
     array structure
      1 -  9: vertices
-    10 - 18: normals
-    19 - 21: rgb
-    22 - 24: mesh type
+    10 - 12: face normal
+    13 - 15: rgb
+    16 - 18: mesh type
 */
 bool SceneGraphNode::buildArray(std::vector<float>& array) {
     // printf("transformation mat: \n%f %f %f %f\n%f %f %f %f\n%f %f %f %f\n",
@@ -119,19 +119,15 @@ bool SceneGraphNode::buildArray(std::vector<float>& array) {
                 array.push_back(worldPosition.y);
                 array.push_back(worldPosition.z);
             }
-            // 10 - 18
-            for (int i = 0; i < 3; i++) {
-                glm::vec3 worldNormal = glm::inverse(glm::transpose(this->getTransformationMat())) * glm::vec4(v[i]->getNormals(), 0.0f);
-                // printf("normal x, y, z: %f, %f, %f\n", worldNormal.x, worldNormal.y, worldNormal.z);
-                array.push_back(worldNormal.x);
-                array.push_back(worldNormal.y);
-                array.push_back(worldNormal.z);
-            }
-            // 19 - 21
+            // 10 - 12
+            array.push_back(f->getFaceNormal().x);
+            array.push_back(f->getFaceNormal().y);
+            array.push_back(f->getFaceNormal().z);
+            // 13 - 15
             array.push_back(this->material.cDiffuse.r);
             array.push_back(this->material.cDiffuse.g);
             array.push_back(this->material.cDiffuse.b);
-            // 22 - 24
+            // 16 - 18
             array.push_back(1.0f);
             array.push_back(0.0f);
             array.push_back(0.0f);

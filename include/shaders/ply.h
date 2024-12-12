@@ -85,6 +85,8 @@ public:
 	void printVertexList();
 	void printFaceList();
 
+	void buildArray(std::vector<float>& array);
+
 private:
 	/*	===============================================
 		Desc: Helper function used in the constructor

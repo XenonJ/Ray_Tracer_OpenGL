@@ -78,6 +78,9 @@ public:
 	void loadSceneFile(const char* filenamePath);
 
 	void bindScene();
+	void bindPLY();
+
+	void loadPLY(std::string filename);
 
 private:
 	void draw();

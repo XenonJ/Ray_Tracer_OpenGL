@@ -92,6 +92,25 @@ private:
 		win->canvas->redraw();
 	}
 
+	static void loadPLYFileCB(Fl_Widget* w, void* data) {
+		Fl_File_Chooser G_chooser("", "", Fl_File_Chooser::MULTI, "");
+		G_chooser.show();
+		G_chooser.directory("./data/ply");
+		while (G_chooser.shown()) {
+			Fl::wait();
+		}
+
+		// Print the results
+		if (G_chooser.value() == NULL) {
+			printf("User cancelled file chooser\n");
+			return;
+		}
+
+		cout << "Loading new PLY file from: " << G_chooser.value() << endl;
+		win->canvas->loadPLY(G_chooser.value());
+		win->canvas->redraw();
+	}
+
 	static void segmentsCB(Fl_Widget* w, void* userdata) {
 		int value = ((Fl_Slider*)w)->value();
 		printf("value: %d\n", value);
@@ -140,7 +159,7 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 			openSceneFileButton->callback(loadSceneFileCB, (void*)this);
 
 			openPlyFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load PLY File?");
-			// openPlyFileButton->callback(loadSceneFileCB, (void*)this);
+			openPlyFileButton->callback(loadPLYFileCB, (void*)this);
 
 		loadPack->end();
 

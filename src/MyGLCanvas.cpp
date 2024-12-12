@@ -126,8 +126,12 @@ void MyGLCanvas::drawScene() {
 		glUniform1f(meshSizeLoc, float(meshSize));
 		// pass light
 		SceneLightData lightData;
-		parser->getLightData(0, lightData);
-		glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
+		if (parser && parser->getLightData(0, lightData)) {
+			glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
+		}
+		else {
+			glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));
+		}
 		// printf("mesh size: %d", meshSize);
 	}
 
@@ -309,7 +313,28 @@ void MyGLCanvas::bindScene() {
 	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
 
 	this->meshTextureBuffer = texture;
-	this->meshSize = array.size() / 24;
+	this->meshSize = array.size() / 18;
+	printf("mesh size: %d\n", this->meshSize);
+}
+
+// bind scene meshes into gl texture buffer
+void MyGLCanvas::bindPLY() {
+	GLuint tbo, texture;
+	glGenBuffers(1, &tbo);
+	glBindBuffer(GL_TEXTURE_BUFFER, tbo);
+
+	std::vector<float> array;
+	this->myObjectPLY->buildArray(array);
+	printf("build array complete\n");
+
+	glBufferData(GL_TEXTURE_BUFFER, array.size() * sizeof(float), array.data(), GL_STATIC_DRAW);
+
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_BUFFER, texture);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, tbo);
+
+	this->meshTextureBuffer = texture;
+	this->meshSize = array.size() / 18;
 	printf("mesh size: %d\n", this->meshSize);
 }
 
@@ -349,4 +374,18 @@ void MyGLCanvas::initializeVertexBuffer() {
 	// release
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+}
+
+void MyGLCanvas::loadPLY(std::string filename) {
+	delete myObjectPLY;
+	myObjectPLY = new ply(filename);
+	// myObjectPLY->printVertexList();
+	// myObjectPLY->printAttributes();
+	// myObjectPLY->printFaceList();
+	bindPLY();
+	camera->reset();
+	camera->setViewAngle(60.0f);
+	updateCamera(w(), h());
+	camera->orientLookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	printf("load ply complete\n");
 }
