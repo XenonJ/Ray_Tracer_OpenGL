@@ -121,7 +121,7 @@ bool SceneGraphNode::buildArray(std::vector<float>& array) {
             }
             // 10 - 18
             for (int i = 0; i < 3; i++) {
-                glm::vec3 worldNormal = glm::inverse(glm::transpose(this->getTransformationMat())) * glm::vec4(v[i]->getNormals(), 1.0f);
+                glm::vec3 worldNormal = glm::inverse(glm::transpose(this->getTransformationMat())) * glm::vec4(v[i]->getNormals(), 0.0f);
                 // printf("normal x, y, z: %f, %f, %f\n", worldNormal.x, worldNormal.y, worldNormal.z);
                 array.push_back(worldNormal.x);
                 array.push_back(worldNormal.y);

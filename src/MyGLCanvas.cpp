@@ -94,9 +94,11 @@ void MyGLCanvas::drawScene() {
     GLint nearLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "nearPlane");
     GLint widthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenWidth");
     GLint heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenHeight");
-    GLint lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lightPos");
 
 	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
+	// printf("eyepoint: %f %f %f\n", 
+	// 	camera->getEyePoint().x, camera->getEyePoint().y, camera->getEyePoint().z
+	// );
 	glUniform3fv(lookVecLoc, 1, glm::value_ptr(camera->getLookVector()));
 	glUniform3fv(upVecLoc, 1, glm::value_ptr(camera->getUpVector()));
 	glUniform1f(viewAngleLoc, camera->getViewAngle());
@@ -119,6 +121,7 @@ void MyGLCanvas::drawScene() {
 
 		GLint meshLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshTexture");
 		GLint meshSizeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshSize");
+    	GLint lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lightPos");
 		glUniform1i(meshLoc, 0);
 		glUniform1f(meshSizeLoc, float(meshSize));
 		// pass light
@@ -212,6 +215,7 @@ void MyGLCanvas::loadSceneFile(const char* filenamePath) {
 
 		camera->reset();
 		camera->setViewAngle(cameraData.heightAngle);
+		updateCamera(w(), h());
 		if (cameraData.isDir == true) {
 			camera->orientLookVec(cameraData.pos, cameraData.look, cameraData.up);
 		}

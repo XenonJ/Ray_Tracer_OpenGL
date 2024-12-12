@@ -138,7 +138,7 @@ float intersectionTriangle(mesh m, vec3 origin, vec3 direction) {
     vec3 e2 = m.v3 - m.v1;
     vec3 pvec = cross(direction, e2);
     float det = dot(e1, pvec);
-    if (abs(det) < 1e-8f) {
+    if (abs(det) < 1e-6f) {
         return -1.0f;
     }
     float invDet = 1.0f / det;
@@ -191,8 +191,8 @@ vec4 calculateRGB() {
     //     return vec4(1.0f);
     // }
     mesh m = getMesh(idx);
-    vec3 normal = (m.n1 + m.n2 + m.n3) / 3;
-    color = vec4(m.diffuseColor * dot(lightDirection, normal), 1.0f);
+    vec3 normal = normalize(cross(m.v2 - m.v1, m.v3 - m.v1));
+    color = vec4(m.diffuseColor * max(dot(lightDirection, normal), 0.0f), 1.0f);
     return color;
 }
 

@@ -44,7 +44,7 @@ void main() {
 	// gl_Position = vec4(S, 1.0f);
 	rayOrigin = eyePosition;
 	rayDirection = normalize(S - eyePosition);
-	lightDirection = normalize(S - lightPos);
+	lightDirection = normalize(lightPos - S);
 }
 
 // cpp version
