@@ -20,7 +20,6 @@ in vec2 pixelIndex; // [0, screenWidth-1] and [0, screenHeight-1]
 out vec3 rayOrigin;     // ray origin (eye position)
 out vec3 rayDirection;  // ray dir
 out vec3 pixelColor;
-out vec3 lightDirection;
 
 void main() {
 	float ndcX = (pixelIndex.x / screenWidth) * 2.0 - 1.0;
@@ -41,10 +40,8 @@ void main() {
 	vec3 u = cross(lookVec, upVec);
 	vec3 v = upVec;
 	vec3 S = Q + a * u + b * v;
-	// gl_Position = vec4(S, 1.0f);
 	rayOrigin = eyePosition;
 	rayDirection = normalize(S - eyePosition);
-	lightDirection = normalize(lightPos - S);
 }
 
 // cpp version

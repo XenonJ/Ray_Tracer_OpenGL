@@ -1,24 +1,38 @@
 #version 330
 
+/* mesh buffer
+    array structure
+     1 -  9: vertices
+    10 - 12: face normal
+    13 - 15: rgb
+    16 - 18: mesh type
+*/
 uniform samplerBuffer meshTexture;
-uniform float meshSize;
+uniform float meshSize; // mesh count
+uniform int frameCounter;   // incr per frame
+uniform sampler2D noiseTex; // noise texture to sample for cloud
+uniform vec3 lightPos;  // light position in world space
 
-in vec3 pixelColor;
-in vec3 rayOrigin;
-in vec3 rayDirection;
-in vec3 lightDirection;
-uniform int frameCounter;
+in vec3 pixelColor; // some background calculated by pixel(i, j)
+in vec3 rayOrigin;  // camera position
+in vec3 rayDirection;   // normalized direction for current ray
 
 const float PI = 3.14159265359;
 const float stepSize = 0.25;
-vec3 worldPosition = rayOrigin + rayDirection * 10000;
-uniform sampler2D noiseTex;
 
+// cloud box
 #define bottom -5
 #define top 5
 #define width 100
 
 out vec4 outputColor;
+
+struct mesh {
+    vec3 v1, v2, v3;
+    vec3 faceNormal;
+    vec3 diffuseColor;
+    vec3 type;
+};
 
 float getDensity(sampler2D noisetex, vec3 pos) {
 
@@ -43,31 +57,15 @@ float getDensity(sampler2D noisetex, vec3 pos) {
     return noise;
 }
 
-struct mesh {
-    vec3 v1, v2, v3;
-    vec3 faceNormal;
-    vec3 diffuseColor;
-    vec3 type;
-};
-
-vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
-    vec3 viewDirection = normalize(worldPosition - cameraPosition);
-    vec3 step = viewDirection * stepSize;
-    vec4 colorSum = vec4(0);
-
-    // Box boundaries
-    vec3 boxMin = vec3(-width, bottom, -width);
-    vec3 boxMax = vec3(width, top, width);
-
-    // Initialize tnear and tfar
+vec2 intersectionAABB(vec3 boxMin, vec3 boxMax, vec3 origin, vec3 direction) {
     float tnear = -1e10;
     float tfar = 1e10;
 
     // Check each axis
     for (int i = 0; i < 3; i++) {
-        if (viewDirection[i] != 0.0) {
-            float t1 = (boxMin[i] - cameraPosition[i]) / viewDirection[i];
-            float t2 = (boxMax[i] - cameraPosition[i]) / viewDirection[i];
+        if (direction[i] != 0.0) {
+            float t1 = (boxMin[i] - origin[i]) / direction[i];
+            float t2 = (boxMax[i] - origin[i]) / direction[i];
 
             if (t1 > t2) {
                 float temp = t1;
@@ -79,56 +77,17 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
             tfar = min(tfar, t2);
 
             if (tnear > tfar || tfar < 0.0) {
-                return vec4(0); // No intersection
+                return vec2(-1.0f); // No intersection
             }
         } else {
             // Ray is parallel to the slabs
-            if (cameraPosition[i] < boxMin[i] || cameraPosition[i] > boxMax[i]) {
-                return vec4(0); // Ray misses the box
+            if (origin[i] < boxMin[i] || origin[i] > boxMax[i]) {
+                return vec2(-1.0f); // Ray misses the box
             }
         }
     }
 
-	
-    // Calculate intersection point
-    vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
-	
-	float len1 = length(point - cameraPosition);     
-	float len2 = length(worldPosition - cameraPosition); 
-		if(len2<len1) {
-			return vec4(0);
-		}
-    // Ray marching
-    for (int i = 0; i < 100; i++) {
-        point += step;
-		// Early exit
-        if (point.x < boxMin.x || point.x > boxMax.x ||
-            point.y < boxMin.y || point.y > boxMax.y ||
-            point.z < boxMin.z || point.z > boxMax.z) {
-            break;
-        }
-
-        float density = getDensity(noiseTex, point) ;
-        vec4 color = vec4(1.0, 1.0, 1.0, 1.0) * density * 0.05;
-        colorSum = colorSum + color * (1.0 - colorSum.a);
-
-        if (colorSum.a > 0.95) {
-            break;
-        }
-    }
-
-    return colorSum;
-}
-
-mesh getMesh(int index) {
-    mesh ret;
-    ret.v1 = texelFetch(meshTexture, 6 * index).rgb;
-    ret.v2 = texelFetch(meshTexture, 6 * index + 1).rgb;
-    ret.v3 = texelFetch(meshTexture, 6 * index + 2).rgb;
-    ret.faceNormal = texelFetch(meshTexture, 6 * index + 3).rgb;
-    ret.diffuseColor = texelFetch(meshTexture, 6 * index + 4).rgb;
-    ret.type = texelFetch(meshTexture, 6 * index + 5).rgb;
-    return ret;
+    return vec2(tnear, tfar);
 }
 
 float intersectionTriangle(mesh m, vec3 origin, vec3 direction) {
@@ -157,7 +116,62 @@ float intersectionTriangle(mesh m, vec3 origin, vec3 direction) {
     return -1.0f;
 }
 
-int intersection() {
+vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
+    vec3 viewDirection = normalize(worldPosition - cameraPosition);
+    vec3 step = viewDirection * stepSize;
+    vec4 colorSum = vec4(0);
+
+    // Box boundaries
+    vec3 boxMin = vec3(-width, bottom, -width);
+    vec3 boxMax = vec3(width, top, width);
+
+    float tnear = intersectionAABB(boxMin, boxMax, cameraPosition, viewDirection).x;
+    if (abs(tnear - -1.0f) < 1e-8f) {
+        return vec4(0.0f);
+    }
+
+    // Calculate intersection point
+    vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
+	
+	float len1 = length(point - cameraPosition);     
+	float len2 = length(worldPosition - cameraPosition); 
+		if(len2<len1) {
+			return vec4(0);
+		}
+    // Ray marching
+    for (int i = 0; i < 100; i++) {
+        point += step;
+		// Early exit
+        if (point.x < boxMin.x || point.x > boxMax.x ||
+            point.y < boxMin.y || point.y > boxMax.y ||
+            point.z < boxMin.z || point.z > boxMax.z) {
+            break;
+        }
+
+        float density = getDensity(noiseTex, point);
+        vec4 color = vec4(1.0, 1.0, 1.0, 1.0) * density * 0.05;
+        colorSum = colorSum + color * (1.0 - colorSum.a);
+
+        if (colorSum.a > 0.95) {
+            break;
+        }
+    }
+
+    return colorSum;
+}
+
+mesh getMesh(int index) {
+    mesh ret;
+    ret.v1 = texelFetch(meshTexture, 6 * index).rgb;
+    ret.v2 = texelFetch(meshTexture, 6 * index + 1).rgb;
+    ret.v3 = texelFetch(meshTexture, 6 * index + 2).rgb;
+    ret.faceNormal = texelFetch(meshTexture, 6 * index + 3).rgb;
+    ret.diffuseColor = texelFetch(meshTexture, 6 * index + 4).rgb;
+    ret.type = texelFetch(meshTexture, 6 * index + 5).rgb;
+    return ret;
+}
+
+vec2 intersection() {
     int idx = -1;
     float t = -1.0f;
     for (int i = 0; i < meshSize; i++) {
@@ -176,26 +190,33 @@ int intersection() {
             }
         }
     }
-    return idx;
+    return vec2(idx, t);
 }
 
 vec4 calculateRGB() {
     vec4 color;
-    int idx = intersection();
+    vec2 ret = intersection();
+    int idx = int(round(ret.x));
+    float t = ret.y;
     if (idx < 0) {
         return vec4(0.0f);
     }
-    // else {
+    // else {   // only intersection
     //     return vec4(1.0f);
     // }
     mesh m = getMesh(idx);
-    color = vec4(m.diffuseColor * max(dot(lightDirection, m.faceNormal), 0.0f), 1.0f);
+    vec3 worldPosition = rayOrigin + t * rayDirection;
+    color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
     return color;
 }
 
 void main()
 {
     // vec4 rtColor = calculateRGB();
+    // outputColor = rtColor;
+    // vec3 somevec = rayOrigin + rayDirection * 1000;
+    // vec4 newColor = renderCloud(rayOrigin, somevec);
     vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
 	outputColor = mix(vec4(pixelColor, 1.0f), cloudColor, 0.5);
+    // outputColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
