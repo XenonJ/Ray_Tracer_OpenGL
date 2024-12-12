@@ -158,7 +158,7 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 			openSceneFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load File");
 			openSceneFileButton->callback(loadSceneFileCB, (void*)this);
 
-			openPlyFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load PLY File?");
+			openPlyFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load PLY File");
 			openPlyFileButton->callback(loadPLYFileCB, (void*)this);
 
 		loadPack->end();
