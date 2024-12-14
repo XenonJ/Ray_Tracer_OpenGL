@@ -78,6 +78,9 @@ public:
 	void loadSceneFile(const char* filenamePath);
 
 	void bindScene();
+	void bindPLY();
+
+	void loadPLY(std::string filename);
 
 private:
 	void draw();
@@ -94,20 +97,31 @@ private:
 
 	// vertex buffer
 	void initializeVertexBuffer();
+	
+	// Worley points
+
+	// Cell size for worley noise
+	float numCellsPerAxis;
+	std::vector<glm::vec3> worleyPoints;
+	std::vector<glm::vec3> CreateWorleyPoints(int numCellsPerAxis);
+	void updateWorleyPoints(int numCellsPerAxis);
+
+
 	GLuint vao;
 	GLuint vbo;
 	std::vector<float> pixelIndices;
 
 	// texture buffer
-	GLuint meshTextureBuffer;
+	std::vector<GLuint> meshTextureBuffers;
 	int meshSize;
+	size_t maxBufferSize = 16 * 1024 * 1024; // 16MB
+	size_t floatsPerTriangle = 18; // 18 float for a mesh
 
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;
 	ply* myObjectPLY;
 
 	glm::mat4 perspectiveMatrix;
-
 	bool firstTime;
 };
 

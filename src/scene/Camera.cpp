@@ -17,8 +17,8 @@ void Camera::reset() {
   setViewAngle(VIEW_ANGLE);
   setNearPlane(NEAR_PLANE);
   setFarPlane(FAR_PLANE);
-  // screenWidth = screenHeight = 200;
-  // screenWidthRatio = 1.0f;
+  screenWidth = screenHeight = 200;
+  screenWidthRatio = 1.0f;
   rotU = rotV = rotW = 0;
 }
 

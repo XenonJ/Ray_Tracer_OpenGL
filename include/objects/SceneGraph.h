@@ -65,7 +65,7 @@ public:
     void draw() { glMultMatrixf(glm::value_ptr(this->transformationMat)); this->shape->draw(); };
     SceneMaterial getMaterial() { return this->material; };
     void setSegments(int segX, int segY) { this->shape->setSegments(segX, segY); };
-    void calculate() { this->shape->calculate(); printf("shape segments: %d, %d\n", Shape::m_segmentsX, Shape::m_segmentsY); };
+    void calculate() { this->shape->calculate(); };
     glm::mat4 getTransformationMat() { return this->transformationMat; };
     OBJ_TYPE getShape() { return this->shape->getType(); };
     float intersect(glm::vec3 origin, glm::vec3 direction, glm::vec3& normal);

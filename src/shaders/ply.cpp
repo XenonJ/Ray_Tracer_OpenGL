@@ -689,3 +689,44 @@ void ply::renderVBO(unsigned int shaderProgramID) {
 
 	//glEnd();
 }
+
+/*
+    array structure
+     1 -  9: vertices
+    10 - 12: face normal
+    13 - 15: rgb
+    16 - 18: mesh type
+*/
+void ply::buildArray(std::vector<float>& array) {
+	for (int i = 0; i < faceCount; i++) {
+		// 1 - 9
+		// Get the vertices that make up each face from the face list, assuming all faces have 3 vertices
+		for (int j = 0; j < 3; j++) {
+			// Print out the vertex
+			int index = faceList[i].vertexList[j];
+			// cout << vertexList[index].x << "," << vertexList[index].y << "," << vertexList[index].z << endl;
+			array.push_back(vertexList[index].x);
+			array.push_back(vertexList[index].y);
+			array.push_back(vertexList[index].z);
+		}
+		// 10 - 12
+		float nx, ny, nz;
+		computeNormal(
+			vertexList[faceList[i].vertexList[0]].x, vertexList[faceList[i].vertexList[0]].y, vertexList[faceList[i].vertexList[0]].z,
+			vertexList[faceList[i].vertexList[1]].x, vertexList[faceList[i].vertexList[1]].y, vertexList[faceList[i].vertexList[1]].z,
+			vertexList[faceList[i].vertexList[2]].x, vertexList[faceList[i].vertexList[2]].y, vertexList[faceList[i].vertexList[2]].z,
+			&nx, &ny, &nz
+		);
+		array.push_back(nx);
+		array.push_back(ny);
+		array.push_back(nz);
+		// 13 - 15
+		array.push_back(1.0f);
+		array.push_back(1.0f);
+		array.push_back(1.0f);
+		// 16 - 18
+		array.push_back(1.0f);
+		array.push_back(0.0f);
+		array.push_back(0.0f);
+	}
+}
