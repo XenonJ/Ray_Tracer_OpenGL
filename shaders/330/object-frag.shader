@@ -39,13 +39,13 @@ in vec3 rayOrigin;  // camera position
 in vec3 rayDirection;   // normalized direction for current ray
 
 const float PI = 3.14159265359;
-const float stepSize = 0.25;
+const float stepSize = 0.1;
 const int MAX_STACK_SIZE = 1000;
 
 // cloud box
-#define bottom -5
-#define top 5
-#define width 500
+#define bottom 5
+#define top 15
+#define width 20
 
 out vec4 outputColor;
 
@@ -63,7 +63,29 @@ struct node {
     int meshes[6];
 };
 
-float getDensity(sampler2D noisetex, vec3 pos) {
+float noise(vec3 x)
+{
+    vec3 p = floor(x);
+    vec3 f = fract(x);
+    f = smoothstep(0.0, 1.0, f);
+     
+    vec2 uv = (p.xy+vec2(37.0, 17.0)*p.z) + f.xy;
+    float v1 = texture( noiseTex, (uv)/256.0 ).x;
+    float v2 = texture( noiseTex, (uv + vec2(37.0, 17.0))/256.0 ).x;
+    return mix(v1, v2, f.z);
+}
+ 
+float getCloudNoise(vec3 worldPos) {
+    vec3 coord = worldPos;
+    coord *= 0.2;
+    float n  = noise(coord) * 0.5;   coord *= 3.0;
+          n += noise(coord) * 0.25;  coord *= 3.01;
+          n += noise(coord) * 0.125; coord *= 3.02;
+          n += noise(coord) * 0.0625;
+    return max(n - 0.5, 0.0) * (1.0 / (1.0 - 0.5));
+}
+
+float getDensity( vec3 pos) {
 
 	// Density falloff
 	float mid = (bottom + top) / 2.0;
@@ -71,16 +93,16 @@ float getDensity(sampler2D noisetex, vec3 pos) {
     float weight = 1.0 - 2.0 * abs(mid - pos.y) / h;
     weight = pow(weight, 0.5);
 	// Get noise
-	vec2 coord = pos.xz * 0.015;
-	coord += frameCounter * 0.001;
-    float noise = texture(noisetex, coord).x;
-	noise += texture(noisetex, coord * 3.5).x / 3.5;
-	noise += texture(noisetex, coord * 12.25).x / 12.25;
-	noise += texture(noisetex, coord * 30.625).x / 30.625;
+	vec2 coord = pos.xz * 0.005;
+	coord += frameCounter * 0.0001;
+    float noise = getCloudNoise(pos);
+	noise += texture(noiseTex, coord * 1.0).x / 1.0;
+	noise += texture(noiseTex, coord * 6.0).x / 6.0;
+	noise += texture(noiseTex, coord * 12.0).x / 12.0;
 
 	noise = noise * weight;
 
-	if(noise < 0.8) {
+	if(noise < 0.7) {
 		noise = 0.0;
 	}
     return noise;
@@ -184,9 +206,21 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
             break;
         }
 
-        float density = getDensity(noiseTex, point) ;
-        vec4 color = vec4(1.0, 1.0, 1.0, 1.0) * density * 0.05;
-        colorSum = colorSum + color * (1.0 - colorSum.a);
+        float density = getDensity(point) ;
+        vec3 L = normalize(lightPos - point);                       // 光源方向
+        float lightDensity = getDensity(point + L);       // 向光源方向采样一次 获取密度
+        float delta = clamp(density - lightDensity, 0.0, 1.0);      // 两次采样密度差
+
+        // 控制透明度
+        density *= 0.3;
+
+        // 颜色计算
+        vec3 base = mix(baseBright, baseDark, density) * density;   // 基础颜色
+        vec3 light = mix(lightDark, lightBright, delta);            // 光照对颜色影响
+
+        // 混合
+        vec4 color = vec4(base*light, density);                     // 当前点的最终颜色
+        colorSum = color * (1.0 - colorSum.a) + colorSum;           // 与累积的颜色混
 
         if (colorSum.a > 0.95) {
             break;
@@ -321,8 +355,8 @@ vec4 calculateRGB() {
 
 void main()
 {
-    vec4 rtColor = calculateRGB();
-    outputColor = rtColor;
+    // vec4 rtColor = calculateRGB();
+    // outputColor = rtColor;
     // node root = getNode(rootIndex);
     // node left = getNode(root.left);
     // node right = getNode(root.right);
@@ -335,6 +369,6 @@ void main()
     // outputColor = vec4(mret, 1.0f, 1.0f, 1.0f);
     // vec3 somevec = rayOrigin + rayDirection * 1000;
     // vec4 newColor = renderCloud(rayOrigin, somevec);
-    // vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
-	// outputColor = mix(vec4(pixelColor, 1.0f), cloudColor, 0.5);
+    vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
+	outputColor = mix(vec4(pixelColor, 1.0f), cloudColor, 0.5);
 }

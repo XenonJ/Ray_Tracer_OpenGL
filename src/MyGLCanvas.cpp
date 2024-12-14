@@ -21,7 +21,7 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 
 	camera = new Camera();
 	rotVec = glm::vec3(0.0f, 0.0f, 0.0f);
-	eyePosition = glm::vec3(12.0f, 12.0f, 12.0f);
+	eyePosition = glm::vec3(20.0f, 20.0f, 20.0f);
 	camera->orientLookAt(eyePosition, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 
 	// Shape
@@ -47,7 +47,7 @@ MyGLCanvas::~MyGLCanvas() {
 
 void MyGLCanvas::initShaders() {
 	printf("init shaders\n");
-	myTextureManager->loadTexture("noiseTex", "./data/ppm/noise.ppm");
+	myTextureManager->loadTexture("noiseTex", "./data/ppm/seamless_perlin_noise_high_density.ppm");
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	// myObjectPLY->buildArrays();
