@@ -50,8 +50,7 @@ void MyGLCanvas::initShaders() {
 	myTextureManager->loadTexture("noiseTex", "./data/ppm/seamless_perlin_noise_high_density.ppm");
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
-	// myObjectPLY->buildArrays();
-	// myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
+	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
 }
 
 void MyGLCanvas::draw() {
@@ -204,7 +203,42 @@ void MyGLCanvas::drawScene() {
 	}
 
     // draw pixels
+    // glDrawArrays(GL_POINTS, 0, w() * h());
+
+	// draw environment
+	glUseProgram(myShaderManager->getShaderProgram("environmentShaders")->programID);
+	 // bind vao
+    glBindVertexArray(vao);
+    // pass Uniform
+    eyeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "eyePosition");
+    lookVecLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "lookVec");
+    upVecLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "upVec");
+    viewAngleLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "viewAngle");
+    nearLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "nearPlane");
+    widthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "screenWidth");
+    heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "screenHeight");
+    lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "lightPos");
+	// pass camera data
+	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
+	// printf("eyepoint: %f %f %f\n", 
+	// 	camera->getEyePoint().x, camera->getEyePoint().y, camera->getEyePoint().z
+	// );
+	glUniform3fv(lookVecLoc, 1, glm::value_ptr(camera->getLookVector()));
+	glUniform3fv(upVecLoc, 1, glm::value_ptr(camera->getUpVector()));
+	glUniform1f(viewAngleLoc, camera->getViewAngle());
+	glUniform1f(nearLoc, camera->getNearPlane());
+	glUniform1f(widthLoc, camera->getScreenWidth());
+	glUniform1f(heightLoc, camera->getScreenHeight());
+	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));	// default light
+
+	frameCounter++;
+	if (frameCounter == INT_MAX)
+	{
+		frameCounter = 0;
+	}
+	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);
     glDrawArrays(GL_POINTS, 0, w() * h());
+	
 
     // release
     glBindVertexArray(0);
@@ -260,6 +294,7 @@ void MyGLCanvas::reloadShaders() {
 	myShaderManager->resetShaders();
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
+	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
 	// myObjectPLY->bindVBO(myShaderManager->getShaderProgram("objectShaders")->programID);
 
 	invalidate();
