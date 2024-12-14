@@ -370,5 +370,5 @@ void main()
     // vec3 somevec = rayOrigin + rayDirection * 1000;
     // vec4 newColor = renderCloud(rayOrigin, somevec);
     vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
-	outputColor = mix(vec4(pixelColor, 1.0f), cloudColor, 0.5);
+	outputColor = vec4(1.0f);
 }
