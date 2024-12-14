@@ -39,7 +39,7 @@ in vec3 rayOrigin;  // camera position
 in vec3 rayDirection;   // normalized direction for current ray
 
 const float PI = 3.14159265359;
-const float stepSize = 0.1;
+const float stepSize = 0.25;
 const int MAX_STACK_SIZE = 1000;
 
 // cloud box
@@ -193,7 +193,7 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
     float baseStepSize = stepSize;
     float maxJitter = baseStepSize * 0.5;
     
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 100; i++) {
         vec2 noiseCoord = (point.xz + vec2(frameCounter)) * 0.01;
         float jitter = (texture(noiseTex, noiseCoord).r * 2.0 - 1.0) * maxJitter;
         vec3 stepWithJitter = step * (1.0 + jitter + 0.01 * i);
