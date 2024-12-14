@@ -154,7 +154,7 @@ void MyGLCanvas::drawScene() {
 		frameCounter = 0;
 	}
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);
-	
+
 	// pass scene data
 	if (this->parser || this->myObjectPLY) {
 		// pass texture buffers
@@ -230,14 +230,15 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(nearLoc, camera->getNearPlane());
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
-	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));	// default light
+	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(300.0f)));	// default light
 
 	frameCounter++;
 	if (frameCounter == INT_MAX)
 	{
 		frameCounter = 0;
 	}
-	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);
+	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "frameCounter"), frameCounter);
+
     glDrawArrays(GL_POINTS, 0, w() * h());
 	
 

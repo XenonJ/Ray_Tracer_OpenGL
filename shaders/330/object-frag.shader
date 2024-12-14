@@ -355,8 +355,8 @@ vec4 calculateRGB() {
 
 void main()
 {
-    // vec4 rtColor = calculateRGB();
-    // outputColor = rtColor;
+    vec4 rtColor = calculateRGB();
+    outputColor = rtColor;
     // node root = getNode(rootIndex);
     // node left = getNode(root.left);
     // node right = getNode(root.right);
@@ -369,6 +369,6 @@ void main()
     // outputColor = vec4(mret, 1.0f, 1.0f, 1.0f);
     // vec3 somevec = rayOrigin + rayDirection * 1000;
     // vec4 newColor = renderCloud(rayOrigin, somevec);
-    vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
-	outputColor = vec4(1.0f);
+    // vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
+	// outputColor = vec4(1.0f);
 }
