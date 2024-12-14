@@ -14,8 +14,21 @@
 */
 uniform int numMeshBuffers;
 uniform int maxTrianglesPerBuffer;
-uniform samplerBuffer meshBuffer[12];   // assume max 12 buffers
-uniform float meshSize; // mesh count
+uniform samplerBuffer meshBuffer[6];   // assume max 6 buffers
+uniform int meshSize; // mesh count
+
+/* tree buffer
+     1 -  3: left, right, 0.0f
+     4 -  6: min_xyz
+     7 -  9: max_xyz
+    10 - 15: nodes(only in leaf nodes)
+*/
+uniform int numTreeBuffers;
+uniform int maxNodesPerBuffer;
+uniform samplerBuffer treeBuffer[6];   // assume max 6 buffers
+uniform int treeSize; // mesh count
+uniform int rootIndex;  // index for kdtree root node
+
 uniform int frameCounter;   // incr per frame
 uniform sampler2D noiseTex; // noise texture to sample for cloud
 uniform vec3 lightPos;  // light position in world space
@@ -27,8 +40,7 @@ in vec3 rayDirection;   // normalized direction for current ray
 
 const float PI = 3.14159265359;
 const float stepSize = 0.25;
-vec3 worldPosition = rayOrigin + rayDirection * 10000;
-uniform sampler2D noiseTex;
+const int MAX_STACK_SIZE = 1000;
 
 // cloud box
 #define bottom -5
@@ -42,6 +54,13 @@ struct mesh {
     vec3 faceNormal;
     vec3 diffuseColor;
     vec3 type;
+};
+
+struct node {
+    int left, right;
+    vec3 min_xyz;
+    vec3 max_xyz;
+    int meshes[6];
 };
 
 float getDensity(sampler2D noisetex, vec3 pos) {
@@ -190,12 +209,32 @@ mesh getMesh(int index) {
     return ret;
 }
 
-vec2 intersection() {
+node getNode(int index) {
+    int bufferIdx = index / maxNodesPerBuffer;
+    int localIdx = index % maxNodesPerBuffer;
+    node ret;
+    vec3 v1 = texelFetch(treeBuffer[bufferIdx], 5 * localIdx).rgb;
+    ret.left = int(round(v1.x));
+    ret.right = int(round(v1.y));
+    ret.min_xyz = texelFetch(treeBuffer[bufferIdx], 5 * localIdx + 1).rgb;
+    ret.max_xyz = texelFetch(treeBuffer[bufferIdx], 5 * localIdx + 2).rgb;
+    vec3 v4 = texelFetch(treeBuffer[bufferIdx], 5 * localIdx + 3).rgb;
+    vec3 v5 = texelFetch(treeBuffer[bufferIdx], 5 * localIdx + 4).rgb;
+    ret.meshes[0] = int(round(v4.x));
+    ret.meshes[1] = int(round(v4.y));
+    ret.meshes[2] = int(round(v4.z));
+    ret.meshes[3] = int(round(v5.x));
+    ret.meshes[4] = int(round(v5.y));
+    ret.meshes[5] = int(round(v5.z));
+    return ret;
+}
+
+vec2 intersection(vec3 origin, vec3 direction) {
     int idx = -1;
     float t = -1.0f;
     for (int i = 0; i < meshSize; i++) {
         mesh m = getMesh(i);
-        float tmpt = intersectionTriangle(m, rayOrigin, rayDirection);
+        float tmpt = intersectionTriangle(m, origin, direction);
         if (t < 0.0f) {
             if (tmpt > 0.0f) {
                 t = tmpt;
@@ -212,9 +251,60 @@ vec2 intersection() {
     return vec2(idx, t);
 }
 
+vec2 intersectionKDTree(vec3 origin, vec3 direction) {
+    // initialize stack with array
+    int stack[MAX_STACK_SIZE];
+    int stackSize = 0;
+
+    // push root into stack
+    stack[stackSize++] = rootIndex;
+
+    int idx = -1;
+    float t = -1.0f;
+
+    while (stackSize > 0) {
+        // pop top
+        int currentIndex = stack[--stackSize];
+        node n = getNode(currentIndex);
+
+        if (n.left == -1) { // leaf node
+            for (int j = 0; j < 6; j++) {
+                if (n.meshes[j] == -1) break; // no more mesh
+                mesh m = getMesh(n.meshes[j]);
+                float tmpt = intersectionTriangle(m, origin, direction);
+                if (t < 0.0f) {
+                    if (tmpt > 0.0f) {
+                        t = tmpt;
+                        idx = n.meshes[j];
+                    }
+                } else {
+                    if (tmpt > 0 && tmpt < t) {
+                        t = tmpt;
+                        idx = n.meshes[j];
+                    }
+                }
+            }
+        } else { // node
+            node left = getNode(n.left);
+            node right = getNode(n.right);
+
+            if (intersectionAABB(left.min_xyz, left.max_xyz, origin, direction).x >= 0.0f) {
+                stack[stackSize++] = n.left; // push left into stack
+            }
+
+            if (intersectionAABB(right.min_xyz, right.max_xyz, origin, direction).x >= 0.0f) {
+                stack[stackSize++] = n.right; // push right into stack
+            }
+        }
+    }
+
+    return vec2(idx, t);
+}
+
 vec4 calculateRGB() {
-    vec4 color;
-    vec2 ret = intersection();
+    vec4 color = vec4(0.0f);
+    // vec2 ret = intersection(rayOrigin, rayDirection);
+    vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
     int idx = int(round(ret.x));
     float t = ret.y;
     if (idx < 0) {
@@ -233,6 +323,16 @@ void main()
 {
     vec4 rtColor = calculateRGB();
     outputColor = rtColor;
+    // node root = getNode(rootIndex);
+    // node left = getNode(root.left);
+    // node right = getNode(root.right);
+    // node leftleft = getNode(left.left);
+    // node leftright = getNode(left.right);
+    // vec2 ret = intersectionAABB(leftright.min_xyz, leftright.max_xyz, rayOrigin, rayDirection);
+    // mesh m = getMesh(leftleft.meshes[0]);
+    // float mret = intersectionTriangle(m, rayOrigin, rayDirection);
+    // vec2 iret = intersectionKDTreeRec(rayOrigin, rayDirection, 0);
+    // outputColor = vec4(mret, 1.0f, 1.0f, 1.0f);
     // vec3 somevec = rayOrigin + rayDirection * 1000;
     // vec4 newColor = renderCloud(rayOrigin, somevec);
     // vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);

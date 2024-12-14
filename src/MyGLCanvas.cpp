@@ -172,11 +172,29 @@ void MyGLCanvas::drawScene() {
 		size_t maxTrianglesPerBuffer = maxBufferSize / (floatsPerTriangle * sizeof(float));
 		glUniform1i(maxTrianglesPerBufferLoc, int(maxTrianglesPerBuffer));
 		// printf("num mesh buffers: %d, max triangles per buffer: %d\n", this->meshTextureBuffers.size(), int(maxTrianglesPerBuffer));
-
-		// GLint meshLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshTexture");
 		GLint meshSizeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshSize");
-		// glUniform1i(meshLoc, 0);
-		glUniform1f(meshSizeLoc, float(meshSize));
+		glUniform1i(meshSizeLoc, meshSize);
+
+		// pass kdtree array
+		size_t startTextureUnit = this->meshTextureBuffers.size(); // Offset by the number of mesh buffers
+		for (size_t i = 0; i < this->treeTextureBuffers.size(); ++i) {
+			glActiveTexture(GL_TEXTURE0 + startTextureUnit + i); // Start from the next available texture unit
+			glBindTexture(GL_TEXTURE_BUFFER, this->treeTextureBuffers[i]);
+			std::string uniformName = "treeBuffer[" + std::to_string(i) + "]";
+			GLuint location = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, uniformName.c_str());
+			glUniform1i(location, startTextureUnit + i); // Bind texture to the corresponding uniform
+		}
+		GLint numTreeBuffersLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "numTreeBuffers");
+    	GLint maxNodesPerBufferLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "maxNodesPerBuffer");
+    	GLint rootIndexLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "rootIndex");
+		glUniform1i(numTreeBuffersLoc, this->treeTextureBuffers.size());
+		size_t maxNodesPerBuffer = maxBufferSize / (floatsPerNode * sizeof(float));
+		glUniform1i(maxNodesPerBufferLoc, int(maxNodesPerBuffer));
+		glUniform1i(rootIndexLoc, rootIndex);
+		// printf("num mesh buffers: %d, max triangles per buffer: %d\n", this->meshTextureBuffers.size(), int(maxTrianglesPerBuffer));
+		GLint treeSizeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "treeSize");
+		glUniform1i(treeSizeLoc, treeSize);
+
 		// pass light
 		SceneLightData lightData;
 		if (parser && parser->getLightData(0, lightData)) {
@@ -346,13 +364,7 @@ void MyGLCanvas::setSegments() {
 	}
 }
 
-// bind scene meshes into gl texture buffer
-void MyGLCanvas::bindScene() {
-	// build array
-	std::vector<float> array;
-	this->scene->buildArray(array);
-	printf("build array complete\n");
-
+void MyGLCanvas::bindMesh(std::vector<float>& array) {
 	// calculate size
 	size_t maxTrianglesPerBuffer = maxBufferSize / (floatsPerTriangle * sizeof(float));
 	size_t totalTriangles = array.size() / floatsPerTriangle;
@@ -388,30 +400,25 @@ void MyGLCanvas::bindScene() {
 	printf("Total buffers: %lu, Total triangles: %lu\n", textureList.size(), totalTriangles);
 }
 
-// bind scene meshes into gl texture buffer
-void MyGLCanvas::bindPLY() {
-	std::vector<float> array;
-	this->myObjectPLY->buildArray(array);
-	printf("build array complete\n");
-
+void MyGLCanvas::bindKDTree(std::vector<float>& array) {
 	// calculate size
-	size_t maxTrianglesPerBuffer = maxBufferSize / (floatsPerTriangle * sizeof(float));
-	size_t totalTriangles = array.size() / floatsPerTriangle;
+	size_t maxNodesPerBuffer = maxBufferSize / (floatsPerNode * sizeof(float));
+	size_t totalNodes = array.size() / floatsPerNode;
 
 	std::vector<GLuint> tboList, textureList;
 
 	size_t start = 0;
 
-	while (start < totalTriangles) {
-        size_t end = std::min(start + maxTrianglesPerBuffer, totalTriangles);
-        size_t bufferSize = (end - start) * floatsPerTriangle;
+	while (start < totalNodes) {
+        size_t end = std::min(start + maxNodesPerBuffer, totalNodes);
+        size_t bufferSize = (end - start) * floatsPerNode;
 
         // Create and upload buffer
         GLuint tbo, texture;
         glGenBuffers(1, &tbo);
         glBindBuffer(GL_TEXTURE_BUFFER, tbo);
 
-        glBufferData(GL_TEXTURE_BUFFER, bufferSize * sizeof(float), &array[start * floatsPerTriangle], GL_STATIC_DRAW);
+        glBufferData(GL_TEXTURE_BUFFER, bufferSize * sizeof(float), &array[start * floatsPerNode], GL_STATIC_DRAW);
 
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_BUFFER, texture);
@@ -422,11 +429,77 @@ void MyGLCanvas::bindPLY() {
         textureList.push_back(texture);
 
         start = end;
+		printf("Uploading buffer size: %lu bytes\n", bufferSize * sizeof(float));
     }
 
-	this->meshTextureBuffers = textureList;
-	this->meshSize = totalTriangles;
-	printf("Total buffers: %lu, Total triangles: %lu\n", textureList.size(), totalTriangles);
+	this->treeTextureBuffers = textureList;
+	this->treeSize = totalNodes;
+	printf("Total buffers: %lu, Total nodes: %lu\n", textureList.size(), totalNodes);
+}
+
+void printTreeBuffer(GLuint treeBufferID, size_t bufferSize) {
+    // Bind the buffer
+    glBindBuffer(GL_TEXTURE_BUFFER, treeBufferID);
+
+    // Allocate a local array to store the buffer data
+    std::vector<float> bufferData(bufferSize);
+
+    // Retrieve the data from the buffer
+    glGetBufferSubData(GL_TEXTURE_BUFFER, 0, bufferSize * sizeof(float), bufferData.data());
+
+    // Print the buffer content
+    printf("Contents of treeBuffer:\n");
+    for (size_t i = 0; i < bufferSize; i += 3) { // Assuming vec3 (GL_RGB32F)
+        printf("[%zu]: %f %f %f\n", i / 3, bufferData[i], bufferData[i + 1], bufferData[i + 2]);
+    }
+
+    // Unbind the buffer
+    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+}
+
+// bind scene meshes into gl texture buffer
+void MyGLCanvas::bindScene() {
+	// build array
+	std::vector<float> array;
+	this->scene->buildArray(array);
+	printf("build array complete\n");
+
+	bindMesh(array);
+	// printTreeBuffer(meshTextureBuffers[0], array.size());
+
+	meshKDTree t;
+	t.build(array);
+	printf("kd tree node size: %d\n", t.nodes.size());
+	printf("kd tree root node: %d\n", t.rootIndex);
+	rootIndex = t.rootIndex;
+	std::vector<float> kdtreeArray;
+	t.buildArray(kdtreeArray);
+	printf("build kd tree array complete\n");
+
+	bindKDTree(kdtreeArray);
+	// printTreeBuffer(treeTextureBuffers[0], kdtreeArray.size());
+}
+
+// bind scene meshes into gl texture buffer
+void MyGLCanvas::bindPLY() {
+	std::vector<float> array;
+	this->myObjectPLY->buildArray(array);
+	printf("build array complete\n");
+
+	bindMesh(array);
+	// printTreeBuffer(meshTextureBuffers[0], array.size());
+
+	meshKDTree t;
+	t.build(array);
+	printf("kd tree node size: %d\n", t.nodes.size());
+	printf("kd tree root node: %d\n", t.rootIndex);
+	rootIndex = t.rootIndex;
+	std::vector<float> kdtreeArray;
+	t.buildArray(kdtreeArray);
+	printf("build kd tree array complete\n");
+
+	bindKDTree(kdtreeArray);
+	// printTreeBuffer(treeTextureBuffers[0], kdtreeArray.size());
 }
 
 void MyGLCanvas::initializeVertexBuffer() {
