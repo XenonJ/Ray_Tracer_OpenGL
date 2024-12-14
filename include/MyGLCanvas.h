@@ -77,8 +77,10 @@ public:
 	void setSegments();
 	void loadSceneFile(const char* filenamePath);
 
+	void bindMesh(std::vector<float>& array);
 	void bindScene();
 	void bindPLY();
+	void bindKDTree(std::vector<float>& array);
 
 	void loadPLY(std::string filename);
 
@@ -113,9 +115,13 @@ private:
 
 	// texture buffer
 	std::vector<GLuint> meshTextureBuffers;
-	int meshSize;
+	std::vector<GLuint> treeTextureBuffers;
+	int rootIndex;	// index for kdtree root node
+	int meshSize;	// mesh triangle number
+	int treeSize;	// mesh kdtree node number
 	size_t maxBufferSize = 16 * 1024 * 1024; // 16MB
 	size_t floatsPerTriangle = 18; // 18 float for a mesh
+	size_t floatsPerNode = 15;	// 15 float for a kdtree node
 
 	TextureManager* myTextureManager;
 	ShaderManager* myShaderManager;

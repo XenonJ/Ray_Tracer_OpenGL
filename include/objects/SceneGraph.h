@@ -53,6 +53,30 @@ private:
     AABB computeBoundingBox(const std::vector<SceneGraphNode*>& objects);
 };
 
+class meshKDTreeNode {
+public:
+    int left = -1;
+    int right = -1;
+    float min_xyz[3] = { std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max() };
+    float max_xyz[3] = { std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest(), std::numeric_limits<float>::lowest() };
+    std::vector<int> faceIndexes;
+};
+
+class meshKDTree {
+public:
+    int rootIndex;
+    std::vector<meshKDTreeNode> nodes;
+    void build(const std::vector<float>& array, int max_triangles_per_leaf = 5);
+    int buildRec(const std::vector<float>& array, std::vector<int>& faceIndexes, int depth, int max_triangles_per_leaf);
+    /*
+         1 -  3: left, right, 0.0f
+         4 -  6: min_xyz
+         7 -  9: max_xyz
+        10 - 15: nodes(only in leaf nodes)
+    */
+    void buildArray(std::vector<float>& array);
+};
+
 class SceneGraphNode {
 private:
     glm::mat4 transformationMat;

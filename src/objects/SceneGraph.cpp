@@ -145,3 +145,98 @@ bool SceneGraph::buildArray(std::vector<float>& array) {
     return true;
 }
 
+void meshKDTree::build(const std::vector<float>& array, int max_triangles_per_leaf) {
+    vector<int> indexes(array.size() / 18);
+    for (int i = 0; i < indexes.size(); i++) { indexes[i] = i; }
+    rootIndex = buildRec(array, indexes, 0, max_triangles_per_leaf);
+}
+
+int meshKDTree::buildRec(const std::vector<float>& array, std::vector<int>& faceIndexes, int depth, int max_triangles_per_leaf) {
+    meshKDTreeNode node;
+
+    // compute AABB
+    for (int index : faceIndexes) {
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                float coord = array[index * 18 + i * 3 + j];
+                node.min_xyz[j] = std::min(coord, node.min_xyz[j]);
+                node.max_xyz[j] = std::max(coord, node.max_xyz[j]);
+            }
+        }
+    }
+
+    // leaf node
+    if (faceIndexes.size() <= max_triangles_per_leaf) {
+        for (int i : faceIndexes) { node.faceIndexes.push_back(i); }
+        // node.faceIndexes = faceIndexes;
+        nodes.push_back(node);
+        return nodes.size() - 1;
+    }
+
+    // split meshes
+    int axis = depth % 3;
+    vector<float> centers;
+    for (int i : faceIndexes) { centers.push_back((array[i * 18 + 0 + axis] + array[i * 18 + 3 + axis] + array[i * 18 + 6 + axis]) / 3); }
+    std::sort(centers.begin(), centers.end());
+    float mid = centers[centers.size() / 2];
+    // float mid = (node.min_xyz[axis] + node.max_xyz[axis]) / 2;
+    // printf("mid: %f\n", mid);
+    std::vector<int> left_indexes, right_indexes;
+    for (int index : faceIndexes) {
+        float center = (array[index * 18 + 0 + axis] + array[index * 18 + 3 + axis] + array[index * 18 + 6 + axis]) / 3;
+        if (center < mid) {
+            left_indexes.push_back(index);
+        }
+        else {
+            right_indexes.push_back(index);
+        }
+    }
+    // create left and right node
+    node.left = buildRec(array, left_indexes, depth + 1, max_triangles_per_leaf);
+    node.right = buildRec(array, right_indexes, depth + 1, max_triangles_per_leaf);
+
+    nodes.push_back(node);
+    return nodes.size() - 1;
+}
+
+/*
+     1 -  3: left, right, 0.0f
+     4 -  6: min_xyz
+     7 -  9: max_xyz
+    10 - 15: nodes(only in leaf nodes)
+*/
+void meshKDTree::buildArray(std::vector<float>& array) {
+    for (auto node : nodes) {
+        // 1 - 3
+        array.push_back(node.left);
+        array.push_back(node.right);
+        array.push_back(0.0f);
+        // 4 - 6
+        array.push_back(node.min_xyz[0]);
+        array.push_back(node.min_xyz[1]);
+        array.push_back(node.min_xyz[2]);
+        // 7 - 9
+        array.push_back(node.max_xyz[0]);
+        array.push_back(node.max_xyz[1]);
+        array.push_back(node.max_xyz[2]);
+        // 10 - 15
+        if (node.left == -1) {
+            int size = std::min(int(node.faceIndexes.size()), 6);
+            for (int i = 0; i < size; i++) {
+                array.push_back(node.faceIndexes[i]);
+            }
+            // place holder
+            for (int j = size; j < 6; j++) {
+                array.push_back(-1.0f);
+            }
+        }
+        else {  // -1.0f if not leaf node
+            array.push_back(-1.0f);
+            array.push_back(-1.0f);
+            array.push_back(-1.0f);
+            array.push_back(-1.0f);
+            array.push_back(-1.0f);
+            array.push_back(-1.0f);
+        }
+    }
+}
