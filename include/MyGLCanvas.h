@@ -97,6 +97,16 @@ private:
 
 	// vertex buffer
 	void initializeVertexBuffer();
+	
+	// Worley points
+
+	// Cell size for worley noise
+	float numCellsPerAxis;
+	std::vector<glm::vec3> worleyPoints;
+	std::vector<glm::vec3> CreateWorleyPoints(int numCellsPerAxis);
+	void updateWorleyPoints(int numCellsPerAxis);
+
+
 	GLuint vao;
 	GLuint vbo;
 	std::vector<float> pixelIndices;
@@ -112,7 +122,6 @@ private:
 	ply* myObjectPLY;
 
 	glm::mat4 perspectiveMatrix;
-
 	bool firstTime;
 };
 

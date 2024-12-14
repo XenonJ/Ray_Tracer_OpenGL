@@ -14,6 +14,7 @@ uniform float meshSize; // mesh count
 uniform int frameCounter;   // incr per frame
 uniform sampler2D noiseTex; // noise texture to sample for cloud
 uniform vec3 lightPos;  // light position in world space
+uniform samplerBuffer worleyPoints; // Worley points texture for cloud
 
 in vec3 pixelColor; // some background calculated by pixel(i, j)
 in vec3 rayOrigin;  // camera position

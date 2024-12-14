@@ -33,6 +33,10 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	myTextureManager = new TextureManager();
 	myShaderManager = new ShaderManager();
 	// myObjectPLY = new ply("./data/sphere.ply");
+
+	// initialize worley points
+	numCellsPerAxis = 10;
+	worleyPoints = CreateWorleyPoints(numCellsPerAxis);
 }
 
 MyGLCanvas::~MyGLCanvas() {
@@ -80,6 +84,42 @@ void MyGLCanvas::draw() {
 	drawScene();
 }
 
+// Generate Worley points buffer
+std::vector<glm::vec3> MyGLCanvas::CreateWorleyPoints(int numCellsPerAxis) {
+    std::vector<glm::vec3> points;
+    float cellSize = 1.0f / numCellsPerAxis;
+
+    for (int x = 0; x < numCellsPerAxis; x++) {
+        for (int y = 0; y < numCellsPerAxis; y++) {
+            for (int z = 0; z < numCellsPerAxis; z++) {
+                glm::vec3 randomOffset = glm::vec3(
+                    static_cast<float>(rand()) / RAND_MAX,
+                    static_cast<float>(rand()) / RAND_MAX,
+                    static_cast<float>(rand()) / RAND_MAX
+                );
+                glm::vec3 position = glm::vec3(x, y, z) + randomOffset * cellSize;
+                points.push_back(position);
+            }
+        }
+    }
+    return points;
+}
+
+// Update worley points
+void MyGLCanvas::updateWorleyPoints(int numCellsPerAxis) {
+	worleyPoints = CreateWorleyPoints(numCellsPerAxis);
+	// pass worley points
+	GLuint worleyTBO, worleyTexture;
+	glGenBuffers(2, &worleyTBO);
+	glBindBuffer(GL_TEXTURE_BUFFER, worleyTBO);
+	glBufferData(GL_TEXTURE_BUFFER, worleyPoints.size() * sizeof(glm::vec3), worleyPoints.data(), GL_STATIC_DRAW);
+	glGenTextures(2, &worleyTexture);
+	glBindTexture(GL_TEXTURE_BUFFER, worleyTexture);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGB32F, worleyTBO);
+	// GLint worleyPointsLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "worleyPoints");
+	// glUniform1i(worleyPointsLoc, 0);
+}
+
 void MyGLCanvas::drawScene() {
     glUseProgram(myShaderManager->getShaderProgram("objectShaders")->programID);
 
@@ -96,6 +136,7 @@ void MyGLCanvas::drawScene() {
     GLint heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenHeight");
     GLint lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lightPos");
 
+	// pass camera data
 	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
 	// printf("eyepoint: %f %f %f\n", 
 	// 	camera->getEyePoint().x, camera->getEyePoint().y, camera->getEyePoint().z
