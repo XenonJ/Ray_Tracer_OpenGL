@@ -203,7 +203,8 @@ void MyGLCanvas::drawScene() {
 	}
 
     // draw pixels
-    // glDrawArrays(GL_POINTS, 0, w() * h());
+    glDrawArrays(GL_POINTS, 0, w() * h());
+	glClear(GL_DEPTH_BUFFER_BIT);
 
 	// draw environment
 	glUseProgram(myShaderManager->getShaderProgram("environmentShaders")->programID);
