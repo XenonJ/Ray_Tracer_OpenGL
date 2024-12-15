@@ -38,21 +38,19 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	numCellsPerAxis = 10;
 	worleyPoints = CreateWorleyPoints(numCellsPerAxis);
 
-	noiseTex = nullptr;
+	// noiseTex = nullptr;
 }
 
 MyGLCanvas::~MyGLCanvas() {
 	delete myTextureManager;
 	delete myShaderManager;
 	delete myObjectPLY;
-	delete noiseTex;
+	// delete noiseTex;
 }
 
 void MyGLCanvas::initShaders() {
 	printf("init shaders\n");
-	// load noise texture
-	noiseTex = new ppm("./data/ppm/seamless_perlin_noise_high_density.ppm");
-	noiseTex->bindTexture();
+	myTextureManager->loadTexture3D("noiseTex", "./data/ppm/tiled_worley_noise.ppm");
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
@@ -223,13 +221,13 @@ void MyGLCanvas::drawScene() {
     glBindVertexArray(vao);
 
 	// bind noise texture
-    glActiveTexture(GL_TEXTURE0);
-    noiseTex->bindTexture();
+    // glActiveTexture(GL_TEXTURE0);
+    // noiseTex->bindTexture();
 
-    // pass texture to shader
-    GLuint programID = myShaderManager->getShaderProgram("environmentShaders")->programID;
-    GLint textureUniformLoc = glGetUniformLocation(programID, "noiseTex");
-    glUniform1i(textureUniformLoc, 0); // bing to GL_TEXTURE0
+    // // pass texture to shader
+    // GLuint programID = myShaderManager->getShaderProgram("environmentShaders")->programID;
+    // GLint textureUniformLoc = glGetUniformLocation(programID, "noiseTex");
+    // glUniform1i(textureUniformLoc, 0); // bing to GL_TEXTURE0
 
 	// use fbo
 	// bind color tex to GL_TEXTURE1
