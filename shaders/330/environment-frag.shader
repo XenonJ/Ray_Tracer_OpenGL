@@ -169,7 +169,7 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
         }
 
         float density = getDensity(point);
-		density *= 10;
+		density *= 5;
 
         if(density < 0.01) {
             i += 1;
