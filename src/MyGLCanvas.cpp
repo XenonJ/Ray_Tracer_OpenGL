@@ -47,7 +47,7 @@ MyGLCanvas::~MyGLCanvas() {
 
 void MyGLCanvas::initShaders() {
 	printf("init shaders\n");
-	myTextureManager->loadTexture("noiseTex", "./data/ppm/seamless_perlin_noise_high_density.ppm");
+	myTextureManager->loadTexture3D("noiseTex", "./data/ppm/tiled_worley_noise.ppm");
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");

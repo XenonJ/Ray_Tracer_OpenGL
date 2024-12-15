@@ -47,6 +47,19 @@ void TextureManager::loadTexture(string textureName, string fileName) {
 	textures[textureName] = curPPM;  //add the newly added texture to the map
 }
 
+void TextureManager::loadTexture3D(string textureName, string fileName) {
+	ppm* curPPM = NULL;
+	auto it = textures.find(textureName);
+	if (it == textures.end()) {  //ppm not found
+		curPPM = new ppm(fileName);
+	}
+	else {
+		curPPM = it->second;
+	}
+	curPPM->bindTexture3D(128);
+	textures[textureName] = curPPM;  //add the newly added texture to the map
+}
+
 void TextureManager::deleteTexture(string textureName) {
 	ppm* curPPM = NULL;
 	auto it = textures.find(textureName);

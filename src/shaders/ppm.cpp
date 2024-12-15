@@ -156,6 +156,56 @@ unsigned int ppm::bindTexture() {
 	return textureID;
 }
 
+unsigned int ppm::bindTexture3D(unsigned int sizeT) {
+    if (textureID == -1) {
+        glGenTextures(1, &textureID);
+    }
+
+    // Bind 3D texture
+    glBindTexture(GL_TEXTURE_3D, textureID);
+
+    // Set 3D texture parameters
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Retrieve image data
+    int width = getWidth();
+    int height = getHeight();
+    char* image = getPixels();
+    int nrChannels = 3; // Assume RGB for ppm format
+
+    if (!image) {
+        std::cerr << "Failed to bind 3D texture: Pixel data is empty!" << std::endl;
+        return -1;
+    }
+
+    // Reorganize 2D image data into 3D texture slices
+    int tex2Dsize = sizeT;
+    int depth = (width / tex2Dsize) * (height / tex2Dsize);
+    int tex2Dblock = width / tex2Dsize;
+    char* fimage = new char[width * height * nrChannels];
+
+    for (int i = 0; i < width; i++) {
+        for (int j = 0; j < height; j++) {
+            unsigned int indexM = (j / tex2Dsize) * tex2Dblock + (i / tex2Dsize);
+            indexM = indexM * tex2Dsize * tex2Dsize + (j % tex2Dsize) * tex2Dsize + (i % tex2Dsize);
+            for (int k = 0; k < nrChannels; k++) {
+                fimage[nrChannels * indexM + k] = image[nrChannels * (width * j + i) + k];
+            }
+        }
+    }
+
+    // Upload the 3D texture data to GPU
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, tex2Dsize, tex2Dsize, depth, 0, GL_RGB, GL_UNSIGNED_BYTE, fimage);
+
+    delete[] fimage;
+
+    return textureID;
+}
+
 unsigned int ppm::getTextureID() {
 	return textureID;
 }

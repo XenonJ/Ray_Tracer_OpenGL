@@ -38,6 +38,7 @@ class TextureManager {
 		void loadTexture(std::string textureName, std::string fileName);
 		void deleteTexture(std::string textureName);
 		unsigned int getTextureID (std::string textureName);
+		void loadTexture3D(std::string textureName, std::string fileName);
 		
 	private:
 		std::map<std::string, ppm*> textures;
