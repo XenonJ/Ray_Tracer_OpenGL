@@ -121,6 +121,11 @@ vec2 intersectionAABB(vec3 boxMin, vec3 boxMax, vec3 origin, vec3 direction) {
     return vec2(tnear, tfar);
 }
 
+// Generate smooth noise-based jitter
+float generateStepJitter(vec3 point, float frequency) {
+    return texture(noiseTex, point * frequency).r; // Sample 3D noise
+}
+
 // Cloud rendering function
 vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
     vec3 viewDirection = normalize(worldPosition - cameraPosition);
@@ -150,8 +155,8 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
     
     for (int i = 0; i < 200; i++) {
         vec2 noiseCoord = (point.xz + vec2(frameCounter)) * 0.01;
-        float jitter = (0.5 + 0.5 * maxJitter);
-        vec3 stepWithJitter = step * (1.0 + jitter + 0.01 * i);
+        float jitter = generateStepJitter(point, 0.1) * 0.3; // Noise-based jitter in [-0.3, 0.3]
+        vec3 stepWithJitter = viewDirection * (stepSize * (1.0 + jitter));
         point += stepWithJitter;
 
         // Early exit
