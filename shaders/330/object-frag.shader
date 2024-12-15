@@ -249,7 +249,6 @@ void main()
         mesh m = getMesh(idx);
         vec3 worldPosition = rayOrigin + t * rayDirection;
         color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
-        outColor = color;
         outDistance = t;
     }
     // else {   // only intersection

@@ -213,6 +213,70 @@ vec4 renderSea(vec3 cameraPosition, vec3 worldPosition)
     return texColor * combinedDiffuse;
 }
 
+// ocean IFFT (simplified simulation)
+const int freqCount = 4;
+const vec2 freqDir[freqCount] = vec2[](
+    vec2(1.0, 0.0),
+    vec2(0.7, 0.7),
+    vec2(-0.5, 1.0),
+    vec2(-1.0, -0.2)
+);
+const float freqOmega[freqCount] = float[](
+    0.8, 1.2, 0.5, 0.9
+);
+const float freqAmp[freqCount] = float[](
+    0.05, 0.03, 0.04, 0.02
+);
+const float freqPhaseOffset[freqCount] = float[](
+    0.0, 1.0, 2.0, 0.5
+);
+
+float computeHeightFromIFFT(vec2 pos, float t) {
+    float height = 0.0;
+    // h(x) = sum_k (A_k * exp(i*(freqDir·x - omega_k*t + phase_k)))
+    for (int i=0; i<freqCount; i++) {
+        float phase = dot(freqDir[i], pos) * freqOmega[i] - freqOmega[i]*t + freqPhaseOffset[i];
+        height += freqAmp[i]*sin(phase);
+    }
+    return height;
+}
+
+// getting normal by partial derivative
+void computeNormalFromHeight(vec2 pos, float t, out float H, out vec3 N) {
+    float epsilon = 0.001;
+    float H0 = computeHeightFromIFFT(pos, t);
+    float Hx = (computeHeightFromIFFT(pos + vec2(epsilon,0), t) - computeHeightFromIFFT(pos - vec2(epsilon,0), t)) / (2.0*epsilon);
+    float Hz = (computeHeightFromIFFT(pos + vec2(0,epsilon), t) - computeHeightFromIFFT(pos - vec2(0,epsilon), t)) / (2.0*epsilon);
+    H = H0;
+    N = normalize(vec3(-Hx, 1.0, -Hz));
+}
+
+vec4 renderDynamicSea(vec3 cameraPosition, vec3 worldPosition)
+{
+    vec3 viewDirection = normalize(worldPosition - cameraPosition);
+    vec3 boxMin = vec3(-sea_width, sea_bottom, -sea_width);
+    vec3 boxMax = vec3(sea_width, sea_top, sea_width);
+    float tnear = intersectionAABB(boxMin, boxMax, cameraPosition, viewDirection).x;
+    if (abs(tnear - -1.0f) < 1e-8f) {
+        return vec4(0.0f);
+    }
+    vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
+
+    vec2 pos = vec2(point.x, point.z);
+    float time = float(frameCounter)*0.05; // dynamic time
+
+    float H;
+    vec3 normal;
+    computeNormalFromHeight(pos, time, H, normal);
+
+    float diffuse = max(dot(normal, normalize(lightPos - point)), 0.0);
+    vec3 baseColor = vec3(0.0, 0.2, 0.4); // sea color
+    vec4 dynamicSeaColor = vec4(baseColor * diffuse, 1.0);
+
+    return dynamicSeaColor;
+}
+
+
 
 void main()
 {
@@ -223,6 +287,6 @@ void main()
 	// outputColor = vec4(pixelColor, 1.0f	);
 
     vec4 seaColor = renderSea(rayOrigin,  rayOrigin + rayDirection * 1000);
-    outputColor = mix(seaColor, vec4(cloudColor.rgb, 1.0), cloudColor.a);
-    
+    vec4 dynamicSeaColor = renderDynamicSea(rayOrigin,  rayOrigin + rayDirection * 1000);
+    outputColor = mix(dynamicSeaColor, vec4(cloudColor.rgb, 1.0), cloudColor.a);
 }
