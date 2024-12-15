@@ -37,17 +37,22 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	// initialize worley points
 	numCellsPerAxis = 10;
 	worleyPoints = CreateWorleyPoints(numCellsPerAxis);
+
+	noiseTex = nullptr;
 }
 
 MyGLCanvas::~MyGLCanvas() {
 	delete myTextureManager;
 	delete myShaderManager;
 	delete myObjectPLY;
+	delete noiseTex;
 }
 
 void MyGLCanvas::initShaders() {
 	printf("init shaders\n");
-	myTextureManager->loadTexture("noiseTex", "./data/ppm/seamless_perlin_noise_high_density.ppm");
+	// load noise texture
+	noiseTex = new ppm("./data/ppm/seamless_perlin_noise_high_density.ppm");
+	noiseTex->bindTexture();
 
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
@@ -73,6 +78,7 @@ void MyGLCanvas::draw() {
 			firstTime = false;
 			initShaders();
 			initializeVertexBuffer();
+			initializeFBO(w(), h());
 		}
 	}
 
@@ -120,6 +126,16 @@ void MyGLCanvas::updateWorleyPoints(int numCellsPerAxis) {
 }
 
 void MyGLCanvas::drawScene() {
+	// incr frame counter
+	frameCounter++;
+	if (frameCounter == INT_MAX)
+	{
+		frameCounter = 0;
+	}
+
+	// make object shaders output into fbo
+	glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
     glUseProgram(myShaderManager->getShaderProgram("objectShaders")->programID);
 
     // bind vao
@@ -137,9 +153,6 @@ void MyGLCanvas::drawScene() {
 
 	// pass camera data
 	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
-	// printf("eyepoint: %f %f %f\n", 
-	// 	camera->getEyePoint().x, camera->getEyePoint().y, camera->getEyePoint().z
-	// );
 	glUniform3fv(lookVecLoc, 1, glm::value_ptr(camera->getLookVector()));
 	glUniform3fv(upVecLoc, 1, glm::value_ptr(camera->getUpVector()));
 	glUniform1f(viewAngleLoc, camera->getViewAngle());
@@ -148,11 +161,6 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(heightLoc, camera->getScreenHeight());
 	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));	// default light
 
-	frameCounter++;
-	if (frameCounter == INT_MAX)
-	{
-		frameCounter = 0;
-	}
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);
 
 	// pass scene data
@@ -170,7 +178,6 @@ void MyGLCanvas::drawScene() {
 		glUniform1i(numMeshBuffersLoc, this->meshTextureBuffers.size());
 		size_t maxTrianglesPerBuffer = maxBufferSize / (floatsPerTriangle * sizeof(float));
 		glUniform1i(maxTrianglesPerBufferLoc, int(maxTrianglesPerBuffer));
-		// printf("num mesh buffers: %d, max triangles per buffer: %d\n", this->meshTextureBuffers.size(), int(maxTrianglesPerBuffer));
 		GLint meshSizeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshSize");
 		glUniform1i(meshSizeLoc, meshSize);
 
@@ -190,7 +197,6 @@ void MyGLCanvas::drawScene() {
 		size_t maxNodesPerBuffer = maxBufferSize / (floatsPerNode * sizeof(float));
 		glUniform1i(maxNodesPerBufferLoc, int(maxNodesPerBuffer));
 		glUniform1i(rootIndexLoc, rootIndex);
-		// printf("num mesh buffers: %d, max triangles per buffer: %d\n", this->meshTextureBuffers.size(), int(maxTrianglesPerBuffer));
 		GLint treeSizeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "treeSize");
 		glUniform1i(treeSizeLoc, treeSize);
 
@@ -199,17 +205,45 @@ void MyGLCanvas::drawScene() {
 		if (parser && parser->getLightData(0, lightData)) {
 			glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
 		}
-		// printf("mesh size: %d\n", meshSize);
 	}
 
     // draw pixels
     glDrawArrays(GL_POINTS, 0, w() * h());
+
+	// readFBOData(w(), h());
+
+	// release depth buffer and frame buffer
 	glClear(GL_DEPTH_BUFFER_BIT);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	// draw environment
 	glUseProgram(myShaderManager->getShaderProgram("environmentShaders")->programID);
-	 // bind vao
+
+	// bind vao
     glBindVertexArray(vao);
+
+	// bind noise texture
+    glActiveTexture(GL_TEXTURE0);
+    noiseTex->bindTexture();
+
+    // pass texture to shader
+    GLuint programID = myShaderManager->getShaderProgram("environmentShaders")->programID;
+    GLint textureUniformLoc = glGetUniformLocation(programID, "noiseTex");
+    glUniform1i(textureUniformLoc, 0); // bing to GL_TEXTURE0
+
+	// use fbo
+	// bind color tex to GL_TEXTURE1
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, colorTexID);
+	GLint colorMapLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "colorMap");
+	glUniform1i(colorMapLoc, 1);
+
+	// bind distance tex to GL_TEXTURE2
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, distanceTexID);
+	GLint distanceMapLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "distanceMap");
+	glUniform1i(distanceMapLoc, 2);
+
     // pass Uniform
     eyeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "eyePosition");
     lookVecLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "lookVec");
@@ -219,11 +253,9 @@ void MyGLCanvas::drawScene() {
     widthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "screenWidth");
     heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "screenHeight");
     lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "lightPos");
+	GLint framebufferSizeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "framebufferSize");
 	// pass camera data
 	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
-	// printf("eyepoint: %f %f %f\n", 
-	// 	camera->getEyePoint().x, camera->getEyePoint().y, camera->getEyePoint().z
-	// );
 	glUniform3fv(lookVecLoc, 1, glm::value_ptr(camera->getLookVector()));
 	glUniform3fv(upVecLoc, 1, glm::value_ptr(camera->getUpVector()));
 	glUniform1f(viewAngleLoc, camera->getViewAngle());
@@ -231,12 +263,8 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
 	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(300.0f)));	// default light
+	glUniform2f(framebufferSizeLoc, float(w()), float(h()));
 
-	frameCounter++;
-	if (frameCounter == INT_MAX)
-	{
-		frameCounter = 0;
-	}
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "frameCounter"), frameCounter);
 
     glDrawArrays(GL_POINTS, 0, w() * h());
@@ -289,6 +317,7 @@ int MyGLCanvas::handle(int e) {
 void MyGLCanvas::resize(int x, int y, int w, int h) {
 	Fl_Gl_Window::resize(x, y, w, h);
 	initializeVertexBuffer();
+	resizeFBO(w, h);
 	puts("resize called");
 }
 
@@ -586,4 +615,99 @@ void MyGLCanvas::loadPLY(std::string filename) {
 	updateCamera(w(), h());
 	camera->orientLookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	printf("load ply complete\n");
+}
+
+void MyGLCanvas::initializeFBO(int width, int height) {
+    // use GL_TEXTURE1 gen color buffer
+    glActiveTexture(GL_TEXTURE1);
+    glGenTextures(1, &colorTexID);
+    glBindTexture(GL_TEXTURE_2D, colorTexID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // use GL_TEXTURE2 gen distance buffer
+    glActiveTexture(GL_TEXTURE2);
+    glGenTextures(1, &distanceTexID);
+    glBindTexture(GL_TEXTURE_2D, distanceTexID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RED, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // gen and bind FBO
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    // attach texture to FBO
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTexID, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, distanceTexID, 0);
+
+    GLenum drawBuffers[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, drawBuffers);
+
+    // check
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        printf("Framebuffer not complete!\n");
+    }
+
+    // release
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // release
+    glActiveTexture(GL_TEXTURE0);
+}
+
+void MyGLCanvas::resizeFBO(int width, int height) {
+    // GL_TEXTURE1 for colorTexID
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, colorTexID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+
+    // GL_TEXTURE2 for distanceTexID
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, distanceTexID);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, width, height, 0, GL_RED, GL_FLOAT, nullptr);
+
+    // release
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    // release
+    glActiveTexture(GL_TEXTURE0);
+}
+
+void MyGLCanvas::readFBOData(int width, int height) {
+    // 确保绑定了 FBO
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    // 创建缓冲区存储数据
+    std::vector<float> colorBuffer(width * height * 4); // RGBA，每像素4个值
+    std::vector<float> distanceBuffer(width * height);  // 距离值，每像素1个值
+
+    // 从 COLOR_ATTACHMENT0 读取颜色数据
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, colorBuffer.data());
+
+    // 从 COLOR_ATTACHMENT1 读取距离数据
+    glReadBuffer(GL_COLOR_ATTACHMENT1);
+    glReadPixels(0, 0, width, height, GL_RED, GL_FLOAT, distanceBuffer.data());
+
+    // 找到前10个大于0的距离值并打印对应的颜色值
+    std::cout << "Distance > 0 and corresponding Color:" << std::endl;
+    int nonZeroCount = 0;
+    for (int i = 0; i < width * height && nonZeroCount < 10; ++i) {
+        if (distanceBuffer[i] > 0.0f) { // 条件：distance > 0
+            int idx = i * 4; // 计算对应的 colorBuffer 索引
+            std::cout << "Pixel " << i << ": Distance=" << distanceBuffer[i]
+                      << ", Color(R,G,B,A)=(" << colorBuffer[idx] << ", "
+                      << colorBuffer[idx + 1] << ", "
+                      << colorBuffer[idx + 2] << ", "
+                      << colorBuffer[idx + 3] << ")" << std::endl;
+            ++nonZeroCount;
+        }
+    }
+
+    // 恢复默认帧缓冲
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

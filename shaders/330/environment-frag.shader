@@ -9,18 +9,22 @@ uniform int frameCounter;   // incr per frame
 uniform sampler2D noiseTex; // noise texture to sample for cloud
 uniform vec3 lightPos;  // light position in world space
 uniform samplerBuffer worleyPoints; // Worley points texture for cloud
+// output from ray tracing
+uniform sampler2D colorMap;
+uniform sampler2D distanceMap;
 
 in vec3 pixelColor; // some background calculated by pixel(i, j)
 in vec3 rayOrigin;  // camera position
 in vec3 rayDirection;   // normalized direction for current ray
+in vec2 pixelCoords;    // pixel coords
 
 const float PI = 3.14159265359;
 const float stepSize = 0.25;
 const int MAX_STACK_SIZE = 1000;
 
 // cloud box
-#define bottom 5
-#define top 15
+#define bottom -10
+#define top 10
 #define width 20
 
 out vec4 outputColor;
@@ -167,9 +171,10 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
 }
 
 void main()
-{	
-	// outputColor = vec4(0.5, 0.5, 0.5, 1.0);
+{
+    vec4 color = texture(colorMap, pixelCoords);
+	// outputColor = vec4(color.rgb, 1.0);
 	vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
-	outputColor = mix(vec4(0.529f, 0.808f, 0.922f, 1.0f), cloudColor, cloudColor.a);
+	outputColor = mix(vec4(color.rgb, 1.0f), cloudColor, cloudColor.a);
 	// outputColor = vec4(pixelColor, 1.0f	);
 }

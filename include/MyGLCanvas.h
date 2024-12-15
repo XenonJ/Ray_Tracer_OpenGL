@@ -81,6 +81,9 @@ public:
 	void bindScene();
 	void bindPLY();
 	void bindKDTree(std::vector<float>& array);
+	void initializeFBO(int width, int height);
+	void resizeFBO(int width, int height);
+	void readFBOData(int width, int height);
 
 	void loadPLY(std::string filename);
 
@@ -112,6 +115,12 @@ private:
 	GLuint vao;
 	GLuint vbo;
 	std::vector<float> pixelIndices;
+	GLuint colorTexID;
+	GLuint distanceTexID;
+	GLuint fbo;
+
+	// noise texture
+	ppm* noiseTex;
 
 	// texture buffer
 	std::vector<GLuint> meshTextureBuffers;

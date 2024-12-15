@@ -12,6 +12,7 @@ uniform float nearPlane;
 uniform float screenWidth;
 uniform float screenHeight;
 uniform vec3 lightPos;
+uniform vec2 framebufferSize;
 
 // index
 in vec2 pixelIndex; // [0, screenWidth-1] and [0, screenHeight-1]
@@ -20,6 +21,7 @@ in vec2 pixelIndex; // [0, screenWidth-1] and [0, screenHeight-1]
 out vec3 rayOrigin;     // ray origin (eye position)
 out vec3 rayDirection;  // ray dir
 out vec3 pixelColor;
+out vec2 pixelCoords;
 
 void main() {
 	float ndcX = (pixelIndex.x / screenWidth) * 2.0 - 1.0;
@@ -28,6 +30,7 @@ void main() {
 	float r = (ndcX + 1.0) / 2.0;
 	float g = (ndcY + 1.0) / 2.0;
 	pixelColor = vec3(r, g, 1.0f);
+	pixelCoords = pixelIndex / framebufferSize;
 
     vec3 Q = eyePosition + lookVec * nearPlane;	// filmPosition
 	float theta = viewAngle / 180.0f * PI;
