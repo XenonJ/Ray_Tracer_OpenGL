@@ -26,7 +26,7 @@ const int MAX_STACK_SIZE = 1000;
 // cloud box
 #define bottom -10
 #define top 10
-#define width 20
+#define width 2000
 
 out vec4 outputColor;
 
@@ -59,36 +59,85 @@ float noise(vec3 coord) {
 }
 
 // Generate Cloud Noise based on world position
-float getCloudNoise(vec3 worldPos) {
-    vec3 coord = worldPos * 0.005;
-	coord += frameCounter * 0.0002;
+// 在 getCloudNoise 函数中添加基于距离的细节控制
+float getCloudNoise(vec3 worldPos, float distanceFromCamera) {
+    vec3 coord = worldPos * 0.02;
+    coord.x += frameCounter * 0.0002;
+    coord.z += frameCounter * 0.0002;
+    coord.y -= frameCounter * 0.0002;
+
+    
+    // 基于距离计算细节层级
+    float detailFactor = 1.0 - smoothstep(0.0, 100.0, distanceFromCamera);
+    
+    // 基础噪声层
     float n = noise(coord) * 0.55;
-    coord *= 3.0;
-    n += noise(coord) * 0.25;
-    coord *= 3.01;
-    n += noise(coord) * 0.125;
-    coord *= 3.02;
-    n += noise(coord) * 0.0625;
+    
+    // 根据距离动态添加细节层
+    if(detailFactor > 0.3) {
+        coord *= 3.0;
+        n += noise(coord) * 0.25 * detailFactor;
+        
+        if(detailFactor > 0.6) {
+            coord *= 3.01;
+            n += noise(coord) * 0.125 * detailFactor;
+            
+            if(detailFactor > 0.8) {
+                coord *= 3.02;
+                n += noise(coord) * 0.0625 * detailFactor;
+            }
+        }
+    }
+    
     return max(n - 0.5, 0.0) * (1.0 / (1.0 - 0.5));
 }
 
+
+
 // Compute Density at a given position
-float getDensity(vec3 pos) {
-    // Density falloff
+float getDensity(vec3 pos, float distanceFromCamera) {
+    vec3 boxMin = vec3(-width, bottom, -width);
+    vec3 boxMax = vec3(width, top, width);
+    
+    // 增加边界过渡区域的宽度
+    float transitionWidth = width * 0.3;
+    
+    // 计算到边界的距离
+    float distToEdgeX = min(abs(pos.x - boxMin.x), abs(pos.x - boxMax.x));
+    float distToEdgeZ = min(abs(pos.z - boxMin.z), abs(pos.z - boxMax.z));
+    float edgeFade = min(distToEdgeX, distToEdgeZ);
+    
+    // 计算边界权重
+    float edgeWeight = smoothstep(0.0, transitionWidth, edgeFade);
+    
+    // 计算密度增强因子：越靠近边界，密度越大
+    float densityBoost = 1.0 + (1.0 - edgeWeight) * 2.0; // 可以调整这个倍数
+    
+    // 原有的高度权重计算
     float mid = (bottom + top) / 2.0;
     float h = top - bottom;
-    float weight = 1.0 - 2.0 * abs(mid - pos.y) / h;
-    weight = pow(weight, 0.5);
-
-    // Noise-based density
-    float noise = getCloudNoise(pos);
-	float density = noise * weight;
-	if(density < 0.01) {
-		density = 0.0;
-	}
+    float heightWeight = 1.0 - 2.0 * abs(mid - pos.y) / h;
+    heightWeight = pow(heightWeight, 0.25);
+    heightWeight = smoothstep(0.0, 1.0, heightWeight);
+    
+    // 获取基础噪声
+    float noise = getCloudNoise(pos, distanceFromCamera);
+    
+    // 在边界附近增强噪声
+    noise *= densityBoost;
+    
+    // 结合边界权重，使用更强的幂次来加速淡出
+    float weight = heightWeight * pow(edgeWeight, 4.0);
+    
+    float density = noise * weight;
+    
+    // 提高密度阈值
+    if(density < 0.1) {
+        density = 0.0;
+    }
+    
     return density;
 }
-
 // AABB intersection for cloud box
 vec2 intersectionAABB(vec3 boxMin, vec3 boxMax, vec3 origin, vec3 direction) {
     float tnear = -1e10;
@@ -132,7 +181,7 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
     vec3 viewDirection = normalize(worldPosition - cameraPosition);
     vec3 step = viewDirection * stepSize;
     vec4 colorSum = vec4(0);
-
+    
     // Box boundaries
     vec3 boxMin = vec3(-width, bottom, -width);
     vec3 boxMax = vec3(width, top, width);
@@ -144,38 +193,49 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
 
     // Calculate intersection point
     vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
-	
-	float len1 = length(point - cameraPosition);     
-	float len2 = length(worldPosition - cameraPosition); 
-		if(len2<len1) {
-			return vec4(0);
-		}
+    float distanceFromCamera = length(point - cameraPosition);
+
+    float len1 = length(point - cameraPosition);     
+    float len2 = length(worldPosition - cameraPosition); 
+    if(len2<len1) {
+        return vec4(0);
+    }
+
     // Ray marching
     float baseStepSize = stepSize;
     float maxJitter = baseStepSize * 0.5;
+    float accumulatedDensity = 0.0;
+    
+    // 根据距离调整采样步长
+    float adaptiveStepSize = stepSize * (1.0 + smoothstep(0.0, 100.0, distanceFromCamera) * 2.0);
     
     for (int i = 0; i < 200; i++) {
         vec2 noiseCoord = (point.xz + vec2(frameCounter)) * 0.01;
-        float jitter = generateStepJitter(point, 0.1) * 0.3; // Noise-based jitter in [-0.3, 0.3]
-        vec3 stepWithJitter = viewDirection * (stepSize * (1.0 + jitter));
+        float jitter = generateStepJitter(point, 0.1) * 0.3;
+        
+        // 使用自适应步长
+        vec3 stepWithJitter = viewDirection * (adaptiveStepSize * (1.0 + jitter));
         point += stepWithJitter;
 
-        // Early exit
         if (point.x < boxMin.x || point.x > boxMax.x ||
             point.y < boxMin.y || point.y > boxMax.y ||
             point.z < boxMin.z || point.z > boxMax.z) {
             break;
         }
 
-        float density = getDensity(point);
+        float currentDistance = length(point - cameraPosition);
+        float density = getDensity(point, currentDistance);
+
+        density *= 1.5;
         vec3 L = normalize(lightPos - point);
-        float lightDensity = getDensity(point + L);
+        
+        // 根据距离调整光照采样
+        float lightSampleDist = 5.0 + currentDistance * 0.1;
+        float lightDensity = getDensity(point + L * lightSampleDist, currentDistance);
         float delta = clamp(density - lightDensity, 0.0, 1.0);
 
-		density *= 1.4;
         vec3 base = mix(baseBright, baseDark, density) * density;
         vec3 light = mix(lightDark, lightBright, delta);
-
         vec4 color = vec4(base * light, density);
         colorSum = color * (1.0 - colorSum.a) + colorSum;
 
