@@ -27,6 +27,7 @@ public:
 	// files
 	Fl_Button* openSceneFileButton;
 	Fl_Button* openPlyFileButton;
+	Fl_Button* openPlaneButton;
 
 	// shape
 	Fl_Slider* segmentsXSlider;
@@ -36,6 +37,14 @@ public:
 	Fl_Slider* rotUSlider;
 	Fl_Slider* rotVSlider;
 	Fl_Slider* rotWSlider;
+
+	// translate
+	Fl_Button* upButton;
+	Fl_Button* downButton;
+	Fl_Button* leftButton;
+	Fl_Button* rightButton;
+	Fl_Button* forwardButton;
+	Fl_Button* backButton;
 
 	MyGLCanvas* canvas;
 
@@ -111,6 +120,35 @@ private:
 		win->canvas->redraw();
 	}
 
+	static void loadPlaneCB(Fl_Widget* w, void* data) {
+		win->canvas->loadPlane();
+		win->canvas->redraw();
+	}
+
+	static void cameraUPCB(Fl_Widget* w, void* data) {
+		win->canvas->camera->translate(glm::vec3(0.0f, 0.1f, 0.0f));
+	}
+
+	static void cameraDOWNCB(Fl_Widget* w, void* data) {
+		win->canvas->camera->translate(glm::vec3(0.0f, -0.1f, 0.0f));
+	}
+
+	static void cameraLEFTCB(Fl_Widget* w, void* data) {
+		win->canvas->camera->translate(glm::vec3(-0.1f, 0.0f, 0.0f));
+	}
+
+	static void cameraRIGHTCB(Fl_Widget* w, void* data) {
+		win->canvas->camera->translate(glm::vec3(0.1f, 0.0f, 0.0f));
+	}
+
+	static void cameraFORWARDCB(Fl_Widget* w, void* data) {
+		win->canvas->camera->translate(glm::vec3(0.0f, 0.0f, 0.1f));
+	}
+
+	static void cameraBACKCB(Fl_Widget* w, void* data) {
+		win->canvas->camera->translate(glm::vec3(0.0f, 0.0f, -0.1f));
+	}
+
 	static void segmentsCB(Fl_Widget* w, void* userdata) {
 		int value = ((Fl_Slider*)w)->value();
 		printf("value: %d\n", value);
@@ -160,6 +198,9 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 
 			openPlyFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load PLY File");
 			openPlyFileButton->callback(loadPLYFileCB, (void*)this);
+
+			openPlaneButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load Plane");
+			openPlaneButton->callback(loadPlaneCB, (void*)this);
 
 		loadPack->end();
 
@@ -237,6 +278,33 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 	packCol2->type(Fl_Pack::VERTICAL);
 	packCol2->spacing(30);
 	packCol2->begin();
+
+		Fl_Pack* transPack = new Fl_Pack(w() - 100, 30, 100, h(), "Camera Translate");
+		transPack->box(FL_DOWN_FRAME);
+		transPack->labelfont(1);
+		transPack->type(Fl_Pack::VERTICAL);
+		transPack->spacing(0);
+		transPack->begin();
+
+			upButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "UP");
+			upButton->callback(cameraUPCB, (void*)this);
+
+			downButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "DOWN");
+			downButton->callback(cameraDOWNCB, (void*)this);
+
+			leftButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "LEFT");
+			leftButton->callback(cameraLEFTCB, (void*)this);
+
+			rightButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "RIGHT");
+			rightButton->callback(cameraRIGHTCB, (void*)this);
+
+			forwardButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "FORWARD");
+			forwardButton->callback(cameraFORWARDCB, (void*)this);
+
+			backButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "BACK");
+			backButton->callback(cameraBACKCB, (void*)this);
+
+		transPack->end();
 
 	packCol2->end();
 

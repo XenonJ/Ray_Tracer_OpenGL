@@ -697,17 +697,19 @@ void ply::renderVBO(unsigned int shaderProgramID) {
     13 - 15: rgb
     16 - 18: mesh type
 */
-void ply::buildArray(std::vector<float>& array) {
+void ply::buildArray(std::vector<float>& array, glm::mat4 mat) {
 	for (int i = 0; i < faceCount; i++) {
 		// 1 - 9
 		// Get the vertices that make up each face from the face list, assuming all faces have 3 vertices
 		for (int j = 0; j < 3; j++) {
 			// Print out the vertex
 			int index = faceList[i].vertexList[j];
+			glm::vec3 pos = glm::vec3(vertexList[index].x, vertexList[index].y, vertexList[index].z);
+			pos = mat * glm::vec4(pos, 1.0f);
 			// cout << vertexList[index].x << "," << vertexList[index].y << "," << vertexList[index].z << endl;
-			array.push_back(vertexList[index].x);
-			array.push_back(vertexList[index].y);
-			array.push_back(vertexList[index].z);
+			array.push_back(pos.x);
+			array.push_back(pos.y);
+			array.push_back(pos.z);
 		}
 		// 10 - 12
 		float nx, ny, nz;
@@ -717,9 +719,11 @@ void ply::buildArray(std::vector<float>& array) {
 			vertexList[faceList[i].vertexList[2]].x, vertexList[faceList[i].vertexList[2]].y, vertexList[faceList[i].vertexList[2]].z,
 			&nx, &ny, &nz
 		);
-		array.push_back(nx);
-		array.push_back(ny);
-		array.push_back(nz);
+		glm::vec3 normal = glm::vec3(nx, ny, nz);
+		normal = glm::inverse(glm::transpose(mat)) * glm::vec4(normal, 0.0f);
+		array.push_back(normal.x);
+		array.push_back(normal.y);
+		array.push_back(normal.z);
 		// 13 - 15
 		array.push_back(1.0f);
 		array.push_back(1.0f);

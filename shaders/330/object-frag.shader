@@ -252,7 +252,7 @@ void main()
         outColor = color;
         outDistance = t;
     }
-    else {   // only intersection
-        return vec4(1.0f);
-    }
+    // else {   // only intersection
+    //     return vec4(1.0f);
+    // }
 }

@@ -545,9 +545,9 @@ void MyGLCanvas::bindScene() {
 }
 
 // bind scene meshes into gl texture buffer
-void MyGLCanvas::bindPLY() {
+void MyGLCanvas::bindPLY(glm::mat4 mat) {
 	std::vector<float> array;
-	this->myObjectPLY->buildArray(array);
+	this->myObjectPLY->buildArray(array, mat);
 	printf("build array complete\n");
 
 	bindMesh(array);
@@ -607,11 +607,29 @@ void MyGLCanvas::initializeVertexBuffer() {
 void MyGLCanvas::loadPLY(std::string filename) {
 	delete myObjectPLY;
 	myObjectPLY = new ply(filename);
-	bindPLY();
+	bindPLY(glm::mat4(1.0f));
 	camera->reset();
 	camera->setViewAngle(60.0f);
 	updateCamera(w(), h());
-	camera->orientLookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	camera->orientLookAt(glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	printf("load ply complete\n");
+}
+
+void MyGLCanvas::loadPlane() {
+	delete myObjectPLY;
+	char cwd[PATH_MAX];
+	getcwd(cwd, sizeof(cwd));
+	std::string pwd(cwd);
+	std::cout << pwd + "/data/ply/airplane.ply" << endl;
+	myObjectPLY = new ply(pwd + "/data/ply/airplane.ply");
+	glm::mat4 mat(1.0f);
+	mat = glm::rotate(mat, TO_RADIANS(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+	mat = glm::rotate(mat, TO_RADIANS(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	bindPLY(glm::mat4(mat));
+	camera->reset();
+	camera->setViewAngle(60.0f);
+	updateCamera(w(), h());
+	camera->orientLookAt(glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	printf("load ply complete\n");
 }
 

@@ -11,6 +11,7 @@
 
 #include <string>
 #include "geometry.h"
+#include <glm/glm.hpp>
 #if defined(__APPLE__)
 #  include <OpenGL/gl3.h> // defines OpenGL 3.0+ functions
 #else
@@ -85,7 +86,7 @@ public:
 	void printVertexList();
 	void printFaceList();
 
-	void buildArray(std::vector<float>& array);
+	void buildArray(std::vector<float>& array, glm::mat4 mat);
 
 private:
 	/*	===============================================

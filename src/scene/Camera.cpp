@@ -341,9 +341,13 @@ void Camera::rotateW(float degrees) {
   upVector = glm::normalize(newUp);
 }
 
-void Camera::translate(glm::vec3 v) { // v 表示的是相机空间中的方向
-    glm::vec3 globalTransMat = getInverseModelViewMatrix() * glm::vec4(v, 0.0f); // 世界坐标系中，平移向量 v 所对应的方向和大小
-    lookVector = lookVector + globalTransMat ;
+void Camera::translate(glm::vec3 localDir) {
+    // localDir.x: 横向平移 (右方向)
+    // localDir.y: 纵向平移 (上方向)
+    // localDir.z: 深度平移 (前方向)
+    glm::vec3 right = glm::normalize(glm::cross(lookVector, upVector));
+    glm::vec3 globalTrans = right * localDir.x + upVector * localDir.y + lookVector * localDir.z;
+    position += globalTrans;
 }
 
 void Camera::rotate(glm::vec3 point, glm::vec3 axis, float degrees) {

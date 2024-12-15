@@ -31,6 +31,8 @@
 #include "./objects/SceneGraph.h"
 #include "scene/Camera.h"
 
+#include <unistd.h>
+#include <limits.h>
 
 class MyGLCanvas : public Fl_Gl_Window {
 public:
@@ -79,13 +81,14 @@ public:
 
 	void bindMesh(std::vector<float>& array);
 	void bindScene();
-	void bindPLY();
+	void bindPLY(glm::mat4 mat);
 	void bindKDTree(std::vector<float>& array);
 	void initializeFBO(int width, int height);
 	void resizeFBO(int width, int height);
 	void readFBOData(int width, int height);
 
 	void loadPLY(std::string filename);
+	void loadPlane();
 
 private:
 	void draw();
