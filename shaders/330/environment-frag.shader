@@ -24,8 +24,8 @@ const int MAX_STACK_SIZE = 1000;
 
 // cloud box
 #define bottom -10
-#define top 10
-#define width 200
+#define top 0
+#define width 50
 
 out vec4 outputColor;
 
@@ -79,7 +79,7 @@ float getDensity(vec3 pos) {
     float mid = (bottom + top) / 2.0;
     float h = top - bottom;
     float weight = 1.0 - 2.0 * abs(mid - pos.y) / h;
-    weight = pow(weight, 0.3);
+    weight = pow(weight, 0.5);
 
     // Noise-based density
     float noise = getCloudNoise(pos);
@@ -155,7 +155,7 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
     float baseStepSize = stepSize;
     float maxJitter = baseStepSize * 0.5;
     
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < 100; i++) {
         vec2 noiseCoord = (point.xz + vec2(frameCounter)) * 0.1;
         float jitter = generateStepJitter(point, 0.1) * 0.001; // Noise-based jitter in [-0.3, 0.3]
         vec3 stepWithJitter = viewDirection * (stepSize * (1.0 + i * jitter));
@@ -178,9 +178,9 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
         vec3 L = normalize(lightPos - point);
         float lightDensity = getDensity(point + L);
         float delta = max(dot(L, normalize(vec3(0, 1, 0))), 0.0);
-
+        density *= 0.5;
         vec3 base = mix(baseBright, baseDark, density) * density;
-        vec3 light = mix(lightDark, lightBright, delta * 0.5);
+        vec3 light = mix(lightDark, lightBright, delta * 0.2);
 
         vec4 color = vec4(base * light, density);
         colorSum = color * (1.0 - colorSum.a) + colorSum;
