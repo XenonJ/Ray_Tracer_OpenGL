@@ -8,6 +8,7 @@
 uniform int frameCounter;   // incr per frame
 uniform sampler3D noiseTex; // noise texture to sample for cloud
 uniform sampler2D seaTex;
+uniform sampler2D seaNormalTex;
 uniform vec3 lightPos;  // light position in world space
 uniform samplerBuffer worleyPoints; // Worley points texture for cloud
 // output from ray tracing
@@ -203,13 +204,13 @@ vec4 renderSea(vec3 cameraPosition, vec3 worldPosition)
     // map normal
     vec3 normalizedNormal = vec3(0.0, 1.0, 0.0);
     float diffuseFromGeometry = max(dot(normalizedNormal, normalize(lightPos - point)), 0.0);
-    // vec3 normalMapValue = texture(seaNormalTex, scaledTexCoord).rgb;
-    // vec3 normalFromNormalMap = normalMapValue * 2.0 - 1.0;
-    // vec3 mapNormal = normalize(normalFromNormalMap);
-    // float diffuseFromNormalMap = max(dot(mapNormal, normalize(lightPos - point)), 0.0);
-    // float combinedDiffuse = diffuseFromGeometry * diffuseFromNormalMap;
+    vec3 normalMapValue = texture(seaNormalTex, scaledTexCoord).rgb;
+    vec3 normalFromNormalMap = normalMapValue * 2.0 - 1.0;
+    vec3 mapNormal = normalize(normalFromNormalMap);
+    float diffuseFromNormalMap = max(dot(mapNormal, normalize(lightPos - point)), 0.0);
+    float combinedDiffuse = diffuseFromGeometry * diffuseFromNormalMap;
     
-    return texColor * diffuseFromGeometry;
+    return texColor * combinedDiffuse;
 }
 
 
