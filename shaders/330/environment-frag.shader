@@ -7,6 +7,7 @@
 
 uniform int frameCounter;   // incr per frame
 uniform sampler3D noiseTex; // noise texture to sample for cloud
+uniform sampler2D seaTex;
 uniform vec3 lightPos;  // light position in world space
 uniform samplerBuffer worleyPoints; // Worley points texture for cloud
 // output from ray tracing
@@ -27,6 +28,29 @@ const int MAX_STACK_SIZE = 1000;
 #define width 20
 
 out vec4 outputColor;
+
+// sea box
+#define sea_bottom -1
+#define sea_top 0
+#define sea_width 20
+
+// Debug method for visualizing values
+vec4 debug(float value, float minValue, float maxValue) {
+    vec3 debugColor;
+
+    if (value > maxValue) {
+        debugColor = vec3(1.0, 0.0, 0.0);// Too large: Red
+    } else if (value < minValue) {
+        debugColor = vec3(0.0, 0.0, 1.0);// Too small: Blue
+    } else {
+        // Map value between minValue (Black) and maxValue (White)
+        float normalizedValue = (value - minValue) / (maxValue - minValue);
+        debugColor = vec3(normalizedValue); // Grayscale gradient
+    }
+    // Return the final debug color as vec4
+    return vec4(debugColor, 1.0);
+}
+
 
 // 3D Noise Function
 float noise(vec3 coord) {
@@ -156,6 +180,34 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
     return colorSum;
 }
 
+vec4 renderSea(vec3 cameraPosition, vec3 worldPosition)
+{
+    // vertex
+    vec3 viewDirection = normalize(worldPosition - cameraPosition);
+    vec3 boxMin = vec3(-sea_width, sea_bottom, -sea_width);
+    vec3 boxMax = vec3(sea_width, sea_top, sea_width);
+    float tnear = intersectionAABB(boxMin, boxMax, cameraPosition, viewDirection).x;
+    if (abs(tnear - -1.0f) < 1e-8f) {
+        return vec4(0.0f);
+    }
+    vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
+    // map pic
+    vec2 texCoord = 1 * vec2(point.x/sea_width, point.z/sea_width);// repeat
+    vec2 scaledTexCoord = texCoord * 1;
+    vec4 texColor = texture(seaTex, scaledTexCoord);
+    // map normal
+    vec3 normalizedNormal = vec3(0.0, 1.0, 0.0);
+    float diffuseFromGeometry = max(dot(normalizedNormal, normalize(lightPos - point)), 0.0);
+    // vec3 normalMapValue = texture(seaNormalTex, scaledTexCoord).rgb;
+    // vec3 normalFromNormalMap = normalMapValue * 2.0 - 1.0;
+    // vec3 mapNormal = normalize(normalFromNormalMap);
+    // float diffuseFromNormalMap = max(dot(mapNormal, normalize(lightPos - point)), 0.0);
+    // float combinedDiffuse = diffuseFromGeometry * diffuseFromNormalMap;
+    
+    return texColor * diffuseFromGeometry;
+}
+
+
 void main()
 {
     vec4 color = texture(colorMap, pixelCoords);
@@ -163,4 +215,6 @@ void main()
 	vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
 	outputColor = mix(vec4(color.rgb, 1.0f), cloudColor, cloudColor.a);
 	// outputColor = vec4(pixelColor, 1.0f	);
+    
+    // outputColor = renderSea(rayOrigin,  rayOrigin + rayDirection * 1000);
 }
