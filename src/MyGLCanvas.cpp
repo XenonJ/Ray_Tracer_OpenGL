@@ -52,6 +52,7 @@ void MyGLCanvas::initShaders() {
 	printf("init shaders\n");
 	myTextureManager->loadTexture3D("noiseTex", "./data/ppm/tiled_worley_noise.ppm");
 	myTextureManager->loadTexture("seaTex", "./data/ppm/sea.ppm");
+	myTextureManager->loadTexture("seaNormalTex", "./data/ppm/bump.ppm");
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
 }
@@ -241,6 +242,18 @@ void MyGLCanvas::drawScene() {
 	glBindTexture(GL_TEXTURE_2D, distanceTexID);
 	GLint distanceMapLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "distanceMap");
 	glUniform1i(distanceMapLoc, 2);
+
+	// bind sea tex to GL_TEXTURE3
+	GLint seaTexLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "seaTex");
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("seaTex"));
+    glUniform1i(seaTexLoc, 3);
+
+	// bind sea tex to GL_TEXTURE4
+    GLint seaNormalTexLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "seaNormalTex");
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("seaNormalTex"));
+    glUniform1i(seaNormalTexLoc, 4);
 
     // pass Uniform
     eyeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "eyePosition");
