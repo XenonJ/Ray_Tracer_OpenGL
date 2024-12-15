@@ -221,6 +221,8 @@ void main()
 	vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
 	outputColor = mix(vec4(color.rgb, 1.0f), cloudColor, cloudColor.a);
 	// outputColor = vec4(pixelColor, 1.0f	);
+
+    vec4 seaColor = renderSea(rayOrigin,  rayOrigin + rayDirection * 1000);
+    outputColor = mix(seaColor, vec4(cloudColor.rgb, 1.0), cloudColor.a);
     
-    // outputColor = renderSea(rayOrigin,  rayOrigin + rayDirection * 1000);
 }
