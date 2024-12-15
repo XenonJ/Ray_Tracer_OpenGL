@@ -283,7 +283,7 @@ void ply::scaleAndCenter() {
 	}
 
 	// max is doubled so that the range we get is from 0.5 to -0.5
-	max *= 2.0f;
+	// max *= 2.0f;
 
 	// scale each vertex to fit within the bounds
 	for (i = 0; i < vertexCount; i++) {
