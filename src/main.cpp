@@ -56,6 +56,52 @@ public:
 		win->canvas->redraw();
 	}
 
+    int handle(int event) override {
+        if (event == FL_KEYDOWN) {
+            int key = Fl::event_key();
+			int state = Fl::event_state();
+			if (state & FL_SHIFT) {
+				switch (key) {
+					case 'w': // W key and up arrow
+					case 'W':
+					case FL_Up:
+						cameraUPCB(upButton, this);
+						return 1;
+					case 's': // S key
+					case 'S':
+					case FL_Down:
+						cameraDOWNCB(downButton, this);
+				}
+			}
+            switch (key) {
+                case 'w': // W key
+                case 'W':
+				case FL_Up:
+                    cameraFORWARDCB(forwardButton, this);
+                    return 1;
+                case 's': // S key
+                case 'S':
+				case FL_Down:
+                    cameraBACKCB(backButton, this);
+                    return 1;
+                case 'a': // A key
+                case 'A':
+				case FL_Left:
+                    cameraLEFTCB(leftButton, this);
+                    return 1;
+                case 'd': // D key
+                case 'D':
+				case FL_Right:
+                    cameraRIGHTCB(rightButton, this);
+                    return 1;
+				case ' ':
+					cameraUPCB(upButton, this);
+					return 1;
+            }
+        }
+        return Fl_Window::handle(event);
+    }
+
 private:
 	void updateGUIValues() {
 		segmentsXSlider->value(canvas->segmentsX);
@@ -126,27 +172,27 @@ private:
 	}
 
 	static void cameraUPCB(Fl_Widget* w, void* data) {
-		win->canvas->camera->translate(glm::vec3(0.0f, 0.1f, 0.0f));
+		win->canvas->camera->translate(glm::vec3(0.0f, 0.5f, 0.0f));
 	}
 
 	static void cameraDOWNCB(Fl_Widget* w, void* data) {
-		win->canvas->camera->translate(glm::vec3(0.0f, -0.1f, 0.0f));
+		win->canvas->camera->translate(glm::vec3(0.0f, -0.5f, 0.0f));
 	}
 
 	static void cameraLEFTCB(Fl_Widget* w, void* data) {
-		win->canvas->camera->translate(glm::vec3(-0.1f, 0.0f, 0.0f));
+		win->canvas->camera->translate(glm::vec3(-0.5f, 0.0f, 0.0f));
 	}
 
 	static void cameraRIGHTCB(Fl_Widget* w, void* data) {
-		win->canvas->camera->translate(glm::vec3(0.1f, 0.0f, 0.0f));
+		win->canvas->camera->translate(glm::vec3(0.5f, 0.0f, 0.0f));
 	}
 
 	static void cameraFORWARDCB(Fl_Widget* w, void* data) {
-		win->canvas->camera->translate(glm::vec3(0.0f, 0.0f, 0.1f));
+		win->canvas->camera->translate(glm::vec3(0.0f, 0.0f, 0.5f));
 	}
 
 	static void cameraBACKCB(Fl_Widget* w, void* data) {
-		win->canvas->camera->translate(glm::vec3(0.0f, 0.0f, -0.1f));
+		win->canvas->camera->translate(glm::vec3(0.0f, 0.0f, -0.5f));
 	}
 
 	static void segmentsCB(Fl_Widget* w, void* userdata) {
