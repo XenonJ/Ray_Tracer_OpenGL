@@ -25,7 +25,7 @@ const int MAX_STACK_SIZE = 1000;
 // cloud box
 #define bottom -10
 #define top 10
-#define width 20
+#define width 200
 
 out vec4 outputColor;
 
@@ -59,15 +59,17 @@ float noise(vec3 coord) {
 
 // Generate Cloud Noise based on world position
 float getCloudNoise(vec3 worldPos) {
-    vec3 coord = worldPos * 0.005;
-	coord += frameCounter * 0.0002;
-    float n = noise(coord) * 0.55;
+    vec3 coord = worldPos * 0.003;
+	coord += frameCounter * 0.0001;
+    float n = noise(coord) * 0.5;
     coord *= 3.0;
     n += noise(coord) * 0.25;
     coord *= 3.01;
     n += noise(coord) * 0.125;
     coord *= 3.02;
     n += noise(coord) * 0.0625;
+    coord *= 3.03;
+    n += noise(coord) * 0.03125;
     return max(n - 0.5, 0.0) * (1.0 / (1.0 - 0.5));
 }
 
@@ -77,14 +79,14 @@ float getDensity(vec3 pos) {
     float mid = (bottom + top) / 2.0;
     float h = top - bottom;
     float weight = 1.0 - 2.0 * abs(mid - pos.y) / h;
-    weight = pow(weight, 0.5);
+    weight = pow(weight, 0.3);
 
     // Noise-based density
     float noise = getCloudNoise(pos);
 	float density = noise * weight;
-	if(density < 0.01) {
-		density = 0.0;
-	}
+	// if(density < 0.01) {
+	// 	density = 0.0;
+	// }
     return density;
 }
 
@@ -153,10 +155,10 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
     float baseStepSize = stepSize;
     float maxJitter = baseStepSize * 0.5;
     
-    for (int i = 0; i < 200; i++) {
-        vec2 noiseCoord = (point.xz + vec2(frameCounter)) * 0.01;
-        float jitter = generateStepJitter(point, 0.1) * 0.3; // Noise-based jitter in [-0.3, 0.3]
-        vec3 stepWithJitter = viewDirection * (stepSize * (1.0 + jitter));
+    for (int i = 0; i < 50; i++) {
+        vec2 noiseCoord = (point.xz + vec2(frameCounter)) * 0.1;
+        float jitter = generateStepJitter(point, 0.1) * 0.001; // Noise-based jitter in [-0.3, 0.3]
+        vec3 stepWithJitter = viewDirection * (stepSize * (1.0 + i * jitter));
         point += stepWithJitter;
 
         // Early exit
@@ -167,18 +169,23 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
         }
 
         float density = getDensity(point);
+		density *= 10;
+
+        if(density < 0.01) {
+            i += 1;
+            // continue;
+        }
         vec3 L = normalize(lightPos - point);
         float lightDensity = getDensity(point + L);
-        float delta = clamp(density - lightDensity, 0.0, 1.0);
+        float delta = max(dot(L, normalize(vec3(0, 1, 0))), 0.0);
 
-		density *= 1.4;
         vec3 base = mix(baseBright, baseDark, density) * density;
-        vec3 light = mix(lightDark, lightBright, delta);
+        vec3 light = mix(lightDark, lightBright, delta * 0.5);
 
         vec4 color = vec4(base * light, density);
         colorSum = color * (1.0 - colorSum.a) + colorSum;
 
-        if (colorSum.a > 0.98) {
+        if (colorSum.a > 0.99) {
             break;
         }
     }
