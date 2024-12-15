@@ -138,8 +138,8 @@ void Cube::calculate() {
 
                 auto vertices = g->getVertices();
                 // Create two triangles for each quad
-                g->addFace(new Face(vertices[index1], vertices[index4], vertices[index3])); // First triangle
-                g->addFace(new Face(vertices[index1], vertices[index2], vertices[index4])); // Second triangle
+                g->addFace(new Face(vertices[index1], vertices[index3], vertices[index4]));
+                g->addFace(new Face(vertices[index1], vertices[index4], vertices[index2]));
             }
         }
 
