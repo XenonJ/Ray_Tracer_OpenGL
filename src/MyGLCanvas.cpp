@@ -159,7 +159,7 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(nearLoc, camera->getNearPlane());
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
-	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));	// default light
+	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(300.0f)));	// default light
 	glUniform3fv(meshTransLoc, 1, glm::value_ptr(meshTranslate));	// mesh translation
 
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);

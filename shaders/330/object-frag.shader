@@ -24,6 +24,8 @@ uniform samplerBuffer treeBuffer[6];   // assume max 6 buffers
 uniform int treeSize; // mesh count
 uniform int rootIndex;  // index for kdtree root node
 
+uniform int frameCounter;   // incr per frame
+
 uniform vec3 lightPos;  // light position in world space
 
 uniform vec3 meshTrans; // mesh translation
@@ -217,10 +219,10 @@ vec2 intersectionKDTree(vec3 origin, vec3 direction) {
     return vec2(idx, t);
 }
 
-vec4 calculateRGB() {
+vec4 calculateRGB(vec3 origin, vec3 direction) {
     vec4 color = vec4(0.0f);
     // vec2 ret = intersection(rayOrigin, rayDirection);
-    vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
+    vec2 ret = intersectionKDTree(origin, direction);
     int idx = int(round(ret.x));
     float t = ret.y;
     if (idx < 0) {
@@ -230,9 +232,98 @@ vec4 calculateRGB() {
     //     return vec4(1.0f);
     // }
     mesh m = getMesh(idx);
-    vec3 worldPosition = rayOrigin + t * rayDirection;
+    vec3 worldPosition = origin + t * direction;
     color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
     return color;
+}
+
+// sea box
+#define sea_bottom -5
+#define sea_top -4
+#define sea_width 200
+
+// ocean IFFT (simplified simulation)
+const int freqCount = 4;
+const vec2 freqDir[freqCount] = vec2[](
+    vec2(1.0, 0.0),
+    vec2(0.7, 0.7),
+    vec2(-0.5, 1.0),
+    vec2(-1.0, -0.2)
+);
+const float freqOmega[freqCount] = float[](
+    0.8, 1.2, 0.5, 0.9
+);
+const float freqAmp[freqCount] = float[](
+    0.05, 0.03, 0.04, 0.02
+);
+const float freqPhaseOffset[freqCount] = float[](
+    0.0, 1.0, 2.0, 0.5
+);
+
+float computeHeightFromIFFT(vec2 pos, float t) {
+    float height = 0.0;
+    // h(x) = sum_k (A_k * exp(i*(freqDir·x - omega_k*t + phase_k)))
+    for (int i=0; i<freqCount; i++) {
+        float phase = dot(freqDir[i], pos) * freqOmega[i] - freqOmega[i]*t + freqPhaseOffset[i];
+        height += freqAmp[i]*sin(phase);
+    }
+    return height;
+}
+
+void computeNormalFromHeight(vec2 pos, float t, out float H, out vec3 N) {
+    float epsilon = 0.001;
+    float H0 = computeHeightFromIFFT(pos, t);
+    float Hx = (computeHeightFromIFFT(pos + vec2(epsilon,0), t) - computeHeightFromIFFT(pos - vec2(epsilon,0), t)) / (2.0*epsilon);
+    float Hz = (computeHeightFromIFFT(pos + vec2(0,epsilon), t) - computeHeightFromIFFT(pos - vec2(0,epsilon), t)) / (2.0*epsilon);
+    H = H0;
+    N = normalize(vec3(-Hx, 1.0, -Hz));
+}
+
+vec4 renderDynamicSea(vec3 cameraPosition, vec3 worldPosition, float depth)
+{
+    vec3 viewDirection = normalize(worldPosition - cameraPosition);
+    vec3 boxMin = vec3(-sea_width, sea_bottom, -sea_width);
+    vec3 boxMax = vec3(sea_width, sea_top, sea_width);
+    float tnear = intersectionAABB(boxMin, boxMax, cameraPosition, viewDirection).x;
+    if (abs(tnear - -1.0f) < 1e-8f || (depth > 0.0f && tnear > depth)) {
+        return vec4(0.0f);
+    }
+    vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
+
+    vec2 pos = vec2(point.x, point.z);
+    float time = float(frameCounter)*0.05; // dynamic time
+
+    float H;
+    vec3 normal;
+    computeNormalFromHeight(pos, time, H, normal);
+
+    float diffuse;
+
+    // compute shadow from mesh
+    vec3 rayToLight = normalize(lightPos - point);
+    mat4 mat = mat4(1.0f);
+    mat[3] = vec4(meshTrans, 1.0f);
+    vec3 origin = (inverse(mat) * vec4(point, 1.0f)).xyz;
+    vec3 direction = (inverse(mat) * vec4(rayToLight, 0.0f)).xyz;
+    vec2 intersectionToLight = intersectionKDTree(origin, direction);
+    if (intersectionToLight.x > 0.0f) {
+        diffuse = 0.0f;
+    }
+    else {
+        diffuse = max(dot(normal, normalize(lightPos - point)), 0.0);
+    }
+
+    vec3 baseColor = vec3(0.4, 0.6, 0.8); // sea color
+    vec4 dynamicSeaColor = vec4(baseColor * diffuse, 1.0);
+
+    // compute reflection on the water
+    vec3 reflectionRay = reflect(viewDirection, normal);
+    reflectionRay = (inverse(mat) * vec4(reflectionRay, 0.0f)).xyz;
+    vec4 reflectionColor = calculateRGB(origin, reflectionRay);
+
+    dynamicSeaColor = mix(dynamicSeaColor, reflectionColor, 0.5f);
+
+    return dynamicSeaColor;
 }
 
 void main()
@@ -246,8 +337,9 @@ void main()
     // vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
     int idx = int(round(ret.x));
     float t = ret.y;
+    vec4 dynamicSeaColor = renderDynamicSea(rayOrigin,  rayOrigin + rayDirection * 1000, t);
     if (idx < 0) {
-        outColor = vec4(0.529f, 0.808f, 0.922f, 1.0f);
+        outColor = mix(vec4(0.529f, 0.808f, 0.922f, 1.0f), dynamicSeaColor, dynamicSeaColor.a);
         outDistance = -1.0f;
     }
     else {
