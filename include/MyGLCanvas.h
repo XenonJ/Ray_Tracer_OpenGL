@@ -98,6 +98,9 @@ public:
 
 	void loadPLY(std::string filename);
 	void loadPlane();
+	void initShaders();
+	void loadNoise(std::string filename);
+	TextureManager* getTextureManager() { return myTextureManager; }
 
 private:
 	void draw();
@@ -106,7 +109,7 @@ private:
 	void flatSceneData();
 	void flatSceneDataRec(SceneNode* node, glm::mat4 curMat);
 
-	void initShaders();
+	
 
 	int handle(int);
 	void resize(int x, int y, int w, int h);

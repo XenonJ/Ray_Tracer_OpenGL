@@ -28,6 +28,7 @@ public:
 	Fl_Button* openSceneFileButton;
 	Fl_Button* openPlyFileButton;
 	Fl_Button* openPlaneButton;
+	Fl_Button* openNoiseFileButton;
 
 	// cloud
 	Fl_Slider* cloudWidthSlider;
@@ -58,6 +59,7 @@ public:
 	Fl_Button* meshBackButton;
 
 	MyGLCanvas* canvas;
+	TextureManager* myTextureManager;
 
 public:
 	// APP WINDOW CONSTRUCTOR
@@ -181,6 +183,26 @@ private:
 		win->canvas->redraw();
 	}
 
+	static void loadNoiseFileCB(Fl_Widget* w, void* data) {
+		Fl_File_Chooser G_chooser("", "", Fl_File_Chooser::MULTI, "");
+		G_chooser.show();
+		G_chooser.directory("./data/ppm");
+		while (G_chooser.shown()) {
+			Fl::wait();
+		}
+
+		// Print the results
+		if (G_chooser.value() == NULL) {
+			printf("User cancelled file chooser\n");
+			return;
+		}
+
+		cout << "Loading new noise file from: " << G_chooser.value() << endl;
+		win->canvas->loadNoise(G_chooser.value());
+		win->canvas->reloadShaders();
+		win->canvas->redraw();
+	}
+
 	static void loadPlaneCB(Fl_Widget* w, void* data) {
 		win->canvas->loadPlane();
 		win->canvas->redraw();
@@ -298,6 +320,9 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 
 			openPlaneButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load Plane");
 			openPlaneButton->callback(loadPlaneCB, (void*)this);
+
+			openNoiseFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load Noise File");
+			openNoiseFileButton->callback(loadNoiseFileCB, (void*)this);
 
 		loadPack->end();
 

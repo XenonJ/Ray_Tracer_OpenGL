@@ -652,6 +652,12 @@ void MyGLCanvas::loadPLY(std::string filename) {
 	printf("load ply complete\n");
 }
 
+void MyGLCanvas::loadNoise(std::string filename) {
+	printf("loading noise file\n");
+	myTextureManager->deleteTexture("noiseTex");
+	myTextureManager->loadTexture3D("noiseTex", filename);
+}
+
 void MyGLCanvas::loadPlane() {
 	delete myObjectPLY;
 	char cwd[PATH_MAX];
