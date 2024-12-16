@@ -182,7 +182,7 @@ float generateStepJitter(vec3 point, float frequency) {
 // Cloud rendering function
 vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
     vec3 viewDirection = normalize(worldPosition - cameraPosition);
-    vec3 step = viewDirection * stepSize;
+
     vec4 colorSum = vec4(0);
     
     // Box boundaries
@@ -205,9 +205,6 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
     }
 
     // Ray marching
-    float baseStepSize = stepSize;
-    float maxJitter = baseStepSize * 0.5;
-    float accumulatedDensity = 0.0;
     
     // 根据距离调整采样步长
     float adaptiveStepSize = stepSize * (1.0 + smoothstep(0.0, 500.0, distanceFromCamera) * 2.0);
@@ -217,7 +214,7 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
         
         // 使用自适应步长
         vec3 stepWithJitter = viewDirection * (adaptiveStepSize * (1.0 + jitter));
-        point += stepWithJitter * (1.0 + i * jitter * 0.05);
+        point += stepWithJitter;
         
 
         if (point.x < boxMin.x || point.x > boxMax.x ||
@@ -236,7 +233,7 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
         float currentDistance = length(point - cameraPosition);
         float density = getDensity(point, currentDistance);
 
-        density *= 2;
+        density *= 1.5;
         vec3 L = normalize(lightPos - point);
         
         // 根据距离调整光照采样
