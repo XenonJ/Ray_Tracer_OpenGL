@@ -149,6 +149,7 @@ void MyGLCanvas::drawScene() {
     GLint widthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenWidth");
     GLint heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenHeight");
     GLint lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lightPos");
+    GLint meshTransLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshTrans");
 
 	// pass camera data
 	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
@@ -159,6 +160,7 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
 	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));	// default light
+	glUniform3fv(meshTransLoc, 1, glm::value_ptr(meshTranslate));	// mesh translation
 
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);
 

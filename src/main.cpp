@@ -38,13 +38,21 @@ public:
 	Fl_Slider* rotVSlider;
 	Fl_Slider* rotWSlider;
 
-	// translate
+	// camera translate
 	Fl_Button* upButton;
 	Fl_Button* downButton;
 	Fl_Button* leftButton;
 	Fl_Button* rightButton;
 	Fl_Button* forwardButton;
 	Fl_Button* backButton;
+
+	// mesh translate
+	Fl_Button* meshUpButton;
+	Fl_Button* meshDownButton;
+	Fl_Button* meshLeftButton;
+	Fl_Button* meshRightButton;
+	Fl_Button* meshForwardButton;
+	Fl_Button* meshBackButton;
 
 	MyGLCanvas* canvas;
 
@@ -193,6 +201,30 @@ private:
 
 	static void cameraBACKCB(Fl_Widget* w, void* data) {
 		win->canvas->camera->translate(glm::vec3(0.0f, 0.0f, -0.5f));
+	}
+
+	static void meshUPCB(Fl_Widget* w, void* data) {
+		win->canvas->meshTranslate += glm::vec3(0.0f, 0.5f, 0.0f);
+	}
+
+	static void meshDOWNCB(Fl_Widget* w, void* data) {
+		win->canvas->meshTranslate += glm::vec3(0.0f, -0.5f, 0.0f);
+	}
+
+	static void meshLEFTCB(Fl_Widget* w, void* data) {
+		win->canvas->meshTranslate += glm::vec3(-0.5f, 0.0f, 0.0f);
+	}
+
+	static void meshRIGHTCB(Fl_Widget* w, void* data) {
+		win->canvas->meshTranslate += glm::vec3(0.5f, 0.0f, 0.0f);
+	}
+
+	static void meshFORWARDCB(Fl_Widget* w, void* data) {
+		win->canvas->meshTranslate += glm::vec3(0.0f, 0.0f, 0.5f);
+	}
+
+	static void meshBACKCB(Fl_Widget* w, void* data) {
+		win->canvas->meshTranslate += glm::vec3(0.0f, 0.0f, -0.5f);
 	}
 
 	static void segmentsCB(Fl_Widget* w, void* userdata) {
@@ -351,6 +383,33 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 			backButton->callback(cameraBACKCB, (void*)this);
 
 		transPack->end();
+
+		Fl_Pack* meshTransPack = new Fl_Pack(w() - 100, 30, 100, h(), "Mesh Translate");
+		meshTransPack->box(FL_DOWN_FRAME);
+		meshTransPack->labelfont(1);
+		meshTransPack->type(Fl_Pack::VERTICAL);
+		meshTransPack->spacing(0);
+		meshTransPack->begin();
+
+			meshUpButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "UP");
+			meshUpButton->callback(meshUPCB, (void*)this);
+
+			meshDownButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "DOWN");
+			meshDownButton->callback(meshDOWNCB, (void*)this);
+
+			meshLeftButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "LEFT");
+			meshLeftButton->callback(meshLEFTCB, (void*)this);
+
+			meshRightButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "RIGHT");
+			meshRightButton->callback(meshRIGHTCB, (void*)this);
+
+			meshForwardButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "FORWARD");
+			meshForwardButton->callback(meshFORWARDCB, (void*)this);
+
+			meshBackButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "BACK");
+			meshBackButton->callback(meshBACKCB, (void*)this);
+
+		meshTransPack->end();
 
 	packCol2->end();
 

@@ -57,6 +57,7 @@ public:
 
 	glm::vec3 eyePosition;
 	glm::vec3 rotVec;
+	glm::vec3 meshTranslate;	// translation for mesh rendering
 	// glm::vec3 lookatPoint;
 	// glm::vec3 lightPos;
 	// glm::vec3 rotWorldVec;

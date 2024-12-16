@@ -26,6 +26,8 @@ uniform int rootIndex;  // index for kdtree root node
 
 uniform vec3 lightPos;  // light position in world space
 
+uniform vec3 meshTrans; // mesh translation
+
 in vec3 pixelColor; // some background calculated by pixel(i, j)
 in vec3 rayOrigin;  // camera position
 in vec3 rayDirection;   // normalized direction for current ray
@@ -235,10 +237,13 @@ vec4 calculateRGB() {
 
 void main()
 {
-    outColor = vec4(0.5f);
-    outDistance = 1.0f;
     vec4 color = vec4(0.0f);
-    vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
+    mat4 mat = mat4(1.0f);
+    mat[3] = vec4(meshTrans, 1.0f);
+    vec3 origin = (inverse(mat) * vec4(rayOrigin, 1.0f)).xyz;
+    vec3 direction = (inverse(mat) * vec4(rayDirection, 0.0f)).xyz;
+    vec2 ret = intersectionKDTree(origin, direction);
+    // vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
     int idx = int(round(ret.x));
     float t = ret.y;
     if (idx < 0) {
