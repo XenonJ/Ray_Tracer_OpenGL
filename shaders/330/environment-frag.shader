@@ -89,7 +89,10 @@ float getCloudNoise(vec3 worldPos, float distanceFromCamera) {
         }
     }
     
-    return max(n - 0.5, 0.0) * (1.0 / (1.0 - 0.5));
+    // Control the threshold of the noise
+    float threshold = 0.45;
+    
+    return max(n - threshold, 0.0) * (1.0 / (1.0 - threshold));
 }
 
 
@@ -101,17 +104,20 @@ float getDensity(vec3 pos, float distanceFromCamera) {
     
     // 增加边界过渡区域的宽度
     float transitionWidth = width * 0.3;
+    float transitionHeight = (top - bottom) * 0.5;
     
     // 计算到边界的距离
     float distToEdgeX = min(abs(pos.x - boxMin.x), abs(pos.x - boxMax.x));
     float distToEdgeZ = min(abs(pos.z - boxMin.z), abs(pos.z - boxMax.z));
-    float edgeFade = min(distToEdgeX, distToEdgeZ);
+    float distToEdgeY = min(abs(pos.y - boxMin.y), abs(pos.y - boxMax.y));
     
     // 计算边界权重
-    float edgeWeight = smoothstep(0.0, transitionWidth, edgeFade);
+    float horizontalEdgeFade = min(distToEdgeX, distToEdgeZ);
+    float horizontalWeight = smoothstep(0.0, transitionWidth, horizontalEdgeFade);
+
+    float verticalWeight = smoothstep(0.0, transitionHeight, distToEdgeY);
     
-    // 计算密度增强因子：越靠近边界，密度越大
-    float densityBoost = 1.0 + (1.0 - edgeWeight) * 2.0; // 可以调整这个倍数
+    float edgeWeight = pow(verticalWeight, 4);
     
     // 原有的高度权重计算
     float mid = (bottom + top) / 2.0;
@@ -123,16 +129,13 @@ float getDensity(vec3 pos, float distanceFromCamera) {
     // 获取基础噪声
     float noise = getCloudNoise(pos, distanceFromCamera);
     
-    // 在边界附近增强噪声
-    noise *= densityBoost;
+    // 在边界附近削弱噪声
+    noise *= edgeWeight;
     
-    // 结合边界权重，使用更强的幂次来加速淡出
-    float weight = heightWeight * pow(edgeWeight, 4.0);
-    
-    float density = noise * weight;
+    float density = noise ;
     
     // 提高密度阈值
-    if(density < 0.1) {
+    if(density < 0.01) {
         density = 0.0;
     }
     
