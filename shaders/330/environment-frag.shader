@@ -25,8 +25,8 @@ const int MAX_STACK_SIZE = 1000;
 
 // cloud box
 #define bottom 1
-#define top 5
-#define width 2000
+#define top 10
+#define width 250
 
 out vec4 outputColor;
 
@@ -61,14 +61,14 @@ float noise(vec3 coord) {
 // Generate Cloud Noise based on world position
 // 在 getCloudNoise 函数中添加基于距离的细节控制
 float getCloudNoise(vec3 worldPos, float distanceFromCamera) {
-    vec3 coord = worldPos * 0.02;
+    vec3 coord = worldPos * 0.005;
     coord.x += frameCounter * 0.0002;
     coord.z += frameCounter * 0.0002;
     coord.y -= frameCounter * 0.0002;
 
     
     // 基于距离计算细节层级
-    float detailFactor = 1.0 - smoothstep(0.0, 100.0, distanceFromCamera);
+    float detailFactor = 1.0 - smoothstep(0.0, 1000.0, distanceFromCamera);
     
     // 基础噪声层
     float n = noise(coord) * 0.55;
