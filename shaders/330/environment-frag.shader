@@ -210,15 +210,15 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
     float accumulatedDensity = 0.0;
     
     // 根据距离调整采样步长
-    float adaptiveStepSize = stepSize * (1.0 + smoothstep(0.0, 100.0, distanceFromCamera) * 2.0);
+    float adaptiveStepSize = stepSize * (1.0 + smoothstep(0.0, 500.0, distanceFromCamera) * 2.0);
     
     for (int i = 0; i < 200; i++) {
-        vec2 noiseCoord = (point.xz + vec2(frameCounter)) * 0.01;
-        float jitter = generateStepJitter(point, 0.1) * 0.3;
+        float jitter = generateStepJitter(point, 0.3) * 0.1;
         
         // 使用自适应步长
         vec3 stepWithJitter = viewDirection * (adaptiveStepSize * (1.0 + jitter));
-        point += stepWithJitter;
+        point += stepWithJitter * (1.0 + i * jitter * 0.05);
+        
 
         if (point.x < boxMin.x || point.x > boxMax.x ||
             point.y < boxMin.y || point.y > boxMax.y ||
@@ -236,7 +236,7 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
         float currentDistance = length(point - cameraPosition);
         float density = getDensity(point, currentDistance);
 
-        density *= 1.5;
+        density *= 2;
         vec3 L = normalize(lightPos - point);
         
         // 根据距离调整光照采样
