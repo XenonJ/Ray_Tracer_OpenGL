@@ -39,6 +39,16 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	worleyPoints = CreateWorleyPoints(numCellsPerAxis);
 
 	// noiseTex = nullptr;
+
+	// 初始化旋转相关变量
+	currentRoll = 0.0f;
+	currentPitch = 0.0f;
+	currentYaw = 0.0f;
+	targetRoll = 0.0f;
+	targetPitch = 0.0f;
+	targetYaw = 0.0f;
+	rotationSpeed = 0.01f;  // 每次按下旋转的角度
+	lerpFactor = 0.001f;    // 插值系数
 }
 
 MyGLCanvas::~MyGLCanvas() {
@@ -286,6 +296,29 @@ void MyGLCanvas::drawScene() {
     // release
     glBindVertexArray(0);
     glUseProgram(0);
+
+    // 传递飞机位置到着色器
+    GLint meshPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshPosition");
+    GLint meshDirLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshDirection");
+    
+    glUniform3fv(meshPosLoc, 1, glm::value_ptr(planePosition));
+    glUniform3fv(meshDirLoc, 1, glm::value_ptr(planeDirection));
+    glUniform3fv(meshTransLoc, 1, glm::value_ptr(meshTranslate));
+
+    // 更新旋转角度(使用线性插值)
+    currentRoll = glm::mix(currentRoll, targetRoll, lerpFactor);
+    currentPitch = glm::mix(currentPitch, targetPitch, lerpFactor);
+    currentYaw = glm::mix(currentYaw, targetYaw, lerpFactor);
+    
+    // 应用旋转到模型矩阵
+    glm::mat4 rotationMatrix = glm::mat4(1.0f);
+    rotationMatrix = glm::rotate(rotationMatrix, currentRoll, glm::vec3(0.0f, 0.0f, 1.0f));  // Roll
+    rotationMatrix = glm::rotate(rotationMatrix, currentPitch, glm::vec3(1.0f, 0.0f, 0.0f)); // Pitch
+    rotationMatrix = glm::rotate(rotationMatrix, currentYaw, glm::vec3(0.0f, 1.0f, 0.0f));   // Yaw
+    
+    // 更新着色器中的变换矩阵
+    GLint rotMatLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "rotationMatrix");
+    glUniformMatrix4fv(rotMatLoc, 1, GL_FALSE, glm::value_ptr(rotationMatrix));
 }
 
 
@@ -631,21 +664,34 @@ void MyGLCanvas::loadPLY(std::string filename) {
 }
 
 void MyGLCanvas::loadPlane() {
-	delete myObjectPLY;
-	char cwd[PATH_MAX];
-	getcwd(cwd, sizeof(cwd));
-	std::string pwd(cwd);
-	std::cout << pwd + "/data/ply/airplane.ply" << endl;
-	myObjectPLY = new ply(pwd + "/data/ply/airplane.ply");
-	glm::mat4 mat(1.0f);
-	mat = glm::rotate(mat, TO_RADIANS(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-	mat = glm::rotate(mat, TO_RADIANS(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	bindPLY(glm::mat4(mat));
-	camera->reset();
-	camera->setViewAngle(60.0f);
-	updateCamera(w(), h());
-	camera->orientLookAt(glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	printf("load ply complete\n");
+	 delete myObjectPLY;
+    char cwd[PATH_MAX];
+    getcwd(cwd, sizeof(cwd));
+    std::string pwd(cwd);
+    std::cout << pwd + "/data/ply/airplane.ply" << endl;
+    myObjectPLY = new ply(pwd + "/data/ply/airplane.ply");
+    
+    // 设置飞机的初始变换矩阵
+    glm::mat4 mat(1.0f);
+    mat = glm::rotate(mat, TO_RADIANS(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));  // 调整飞机朝向
+    mat = glm::rotate(mat, TO_RADIANS(180.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    
+    // 初始化飞机位置和变换
+    meshTranslate = glm::vec3(0.0f);  // 初始位移为零
+    planePosition = glm::vec3(0.0f, 10.0f, -20.0f);
+    planeDirection = glm::vec3(0.0f, 0.0f, 1.0f);
+    planeUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    
+    mat = glm::translate(mat, planePosition);
+    bindPLY(mat);
+    
+    // 设置相机跟随
+    camera->orientLookAt(
+        planePosition - planeDirection * 10.0f + planeUp * 3.0f,  // 相机位置
+        planePosition,                                            // 看向飞机
+        planeUp                                                   // 上向量
+    );
+    printf("load ply complete\n");
 }
 
 void MyGLCanvas::initializeFBO(int width, int height) {
@@ -712,11 +758,11 @@ void MyGLCanvas::readFBOData(int width, int height) {
     // 确保绑定了 FBO
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-    // 创建缓冲区存储数据
+    // 建缓冲区存储数据
     std::vector<float> colorBuffer(width * height * 4); // RGBA，每像素4个值
     std::vector<float> distanceBuffer(width * height);  // 距离值，每像素1个值
 
-    // 从 COLOR_ATTACHMENT0 读取颜色数据
+    // 从 COLOR_ATTACHMENT0 取颜色数据
     glReadBuffer(GL_COLOR_ATTACHMENT0);
     glReadPixels(0, 0, width, height, GL_RGBA, GL_FLOAT, colorBuffer.data());
 
@@ -739,6 +785,6 @@ void MyGLCanvas::readFBOData(int width, int height) {
         }
     }
 
-    // 恢复默认帧缓冲
+    // 恢复认帧缓冲
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }

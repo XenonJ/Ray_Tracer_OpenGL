@@ -30,6 +30,10 @@ uniform vec3 lightPos;  // light position in world space
 
 uniform vec3 meshTrans; // mesh translation
 
+uniform vec3 meshPosition;    // 飞机位置
+uniform vec3 meshDirection;   // 飞机朝向
+uniform vec3 meshTranslate;  // 飞机位移
+
 in vec3 pixelColor; // some background calculated by pixel(i, j)
 in vec3 rayOrigin;  // camera position
 in vec3 rayDirection;   // normalized direction for current ray

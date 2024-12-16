@@ -56,56 +56,106 @@ public:
 
 	MyGLCanvas* canvas;
 
+private:
+	// 飞行控制相关变量
+	bool flightMode;
+	float planeSpeed;
+	float planeThrottle;
+	float planeRoll;
+	float planePitch;
+	float planeYaw;
+	float targetRoll;
+	float targetPitch;
+	float targetYaw;
+	glm::vec3 planePosition;
+	glm::vec3 planeDirection;
+	glm::vec3 planeUp;
+	int lastMouseX, lastMouseY;
+
+public:
+	static const float ROLL_SPEED;
+	static const float PITCH_SPEED;
+	static const float YAW_SPEED;
+	static const float LERP_FACTOR;
+	static const float MIN_SPEED;
+	static const float MAX_SPEED;
+	static const float ACCELERATION;
+
 public:
 	// APP WINDOW CONSTRUCTOR
 	MyAppWindow(int W, int H, const char* L = 0);
 
 	static void idleCB(void* userdata) {
+		win->updatePlaneMovement();
 		win->canvas->redraw();
 	}
 
     int handle(int event) override {
-        if (event == FL_KEYDOWN) {
-            int key = Fl::event_key();
-			int state = Fl::event_state();
-			if (state & FL_SHIFT) {
-				switch (key) {
-					case 'w': // W key and up arrow
-					case 'W':
-					case FL_Up:
-						cameraUPCB(upButton, this);
-						return 1;
-					case 's': // S key
-					case 'S':
-					case FL_Down:
-						cameraDOWNCB(downButton, this);
-				}
-			}
-            switch (key) {
-                case 'w': // W key
-                case 'W':
-				case FL_Up:
-                    cameraFORWARDCB(forwardButton, this);
+        if (!flightMode) {
+            return Fl_Window::handle(event);
+        }
+
+        int key;
+
+        switch (event) {
+            case FL_KEYDOWN:
+                key = Fl::event_key();
+                switch (key) {
+                    case 'w':
+                    case 'W':
+                        planeThrottle = 1.0f;
+                        return 1;
+                    case 's':
+                    case 'S':
+                        planeThrottle = -1.0f;
+                        return 1;
+                    case 'a':
+                    case 'A':
+                        targetRoll = ROLL_SPEED;
+                        return 1;
+                    case 'd':
+                    case 'D':
+                        targetRoll = -ROLL_SPEED;
+                        return 1;
+                }
+                break;
+
+            case FL_KEYUP:
+                key = Fl::event_key();
+                switch (key) {
+                    case 'w':
+                    case 'W':
+                    case 's':
+                    case 'S':
+                        planeThrottle = 0.0f;
+                        return 1;
+                    case 'a':
+                    case 'A':
+                    case 'd':
+                    case 'D':
+                        targetRoll = 0.0f;
+                        return 1;
+                }
+                break;
+
+            case FL_PUSH:
+                lastMouseX = Fl::event_x();
+                lastMouseY = Fl::event_y();
+                return 1;
+
+            case FL_DRAG:
+                if (flightMode) {
+                    int dx = Fl::event_x() - lastMouseX;
+                    int dy = Fl::event_y() - lastMouseY;
+                    
+                    targetPitch += dy * PITCH_SPEED * 0.01f;
+                    targetYaw += dx * YAW_SPEED * 0.01f;
+                    
+                    lastMouseX = Fl::event_x();
+                    lastMouseY = Fl::event_y();
                     return 1;
-                case 's': // S key
-                case 'S':
-				case FL_Down:
-                    cameraBACKCB(backButton, this);
-                    return 1;
-                case 'a': // A key
-                case 'A':
-				case FL_Left:
-                    cameraLEFTCB(leftButton, this);
-                    return 1;
-                case 'd': // D key
-                case 'D':
-				case FL_Right:
-                    cameraRIGHTCB(rightButton, this);
-                    return 1;
-				case ' ':
-					cameraUPCB(upButton, this);
-					return 1;
-            }
+                }
+                break;
         }
         return Fl_Window::handle(event);
     }
@@ -176,6 +226,7 @@ private:
 
 	static void loadPlaneCB(Fl_Widget* w, void* data) {
 		win->canvas->loadPlane();
+		win->flightMode = true;
 		win->canvas->redraw();
 	}
 
@@ -204,28 +255,55 @@ private:
 	}
 
 	static void meshUPCB(Fl_Widget* w, void* data) {
-		win->canvas->meshTranslate += glm::vec3(0.0f, 0.5f, 0.0f);
-	}
+    win->canvas->meshTranslate += glm::vec3(0.0f, 0.5f, 0.0f);
+}
 
-	static void meshDOWNCB(Fl_Widget* w, void* data) {
-		win->canvas->meshTranslate += glm::vec3(0.0f, -0.5f, 0.0f);
-	}
+static void meshDOWNCB(Fl_Widget* w, void* data) {
+    win->canvas->meshTranslate += glm::vec3(0.0f, -0.5f, 0.0f);
+}
 
-	static void meshLEFTCB(Fl_Widget* w, void* data) {
-		win->canvas->meshTranslate += glm::vec3(-0.5f, 0.0f, 0.0f);
-	}
+static void meshLEFTCB(Fl_Widget* w, void* data) {
+    win->canvas->meshTranslate += glm::vec3(-0.5f, 0.0f, 0.0f);
+}
 
-	static void meshRIGHTCB(Fl_Widget* w, void* data) {
-		win->canvas->meshTranslate += glm::vec3(0.5f, 0.0f, 0.0f);
-	}
+static void meshRIGHTCB(Fl_Widget* w, void* data) {
+    win->canvas->meshTranslate += glm::vec3(0.5f, 0.0f, 0.0f);
+}
 
-	static void meshFORWARDCB(Fl_Widget* w, void* data) {
-		win->canvas->meshTranslate += glm::vec3(0.0f, 0.0f, 0.5f);
-	}
+static void meshFORWARDCB(Fl_Widget* w, void* data) {
+    win->canvas->meshTranslate += glm::vec3(0.0f, 0.0f, 0.5f);
+}
 
-	static void meshBACKCB(Fl_Widget* w, void* data) {
-		win->canvas->meshTranslate += glm::vec3(0.0f, 0.0f, -0.5f);
-	}
+static void meshBACKCB(Fl_Widget* w, void* data) {
+    win->canvas->meshTranslate += glm::vec3(0.0f, 0.0f, -0.5f);
+}
+
+// 左右旋转(Roll)
+static void rollLeftCB(Fl_Widget* w, void* data) {
+    win->canvas->targetRoll -= win->canvas->rotationSpeed;
+}
+
+static void rollRightCB(Fl_Widget* w, void* data) {
+    win->canvas->targetRoll += win->canvas->rotationSpeed;
+}
+
+// 上下旋转(Pitch)
+static void pitchUpCB(Fl_Widget* w, void* data) {
+    win->canvas->targetPitch += win->canvas->rotationSpeed;
+}
+
+static void pitchDownCB(Fl_Widget* w, void* data) {
+    win->canvas->targetPitch -= win->canvas->rotationSpeed;
+}
+
+// 左右转向(Yaw)
+static void yawLeftCB(Fl_Widget* w, void* data) {
+    win->canvas->targetYaw -= win->canvas->rotationSpeed;
+}
+
+static void yawRightCB(Fl_Widget* w, void* data) {
+    win->canvas->targetYaw += win->canvas->rotationSpeed;
+}
 
 	static void segmentsCB(Fl_Widget* w, void* userdata) {
 		int value = ((Fl_Slider*)w)->value();
@@ -238,10 +316,67 @@ private:
 		win->canvas->camera->setRotUVW(win->rotUSlider->value(), win->rotVSlider->value(), win->rotWSlider->value());
 	}
 
+	void updatePlaneMovement() {
+		if (!flightMode) return;
+
+		// 更新飞机姿态
+		planeRoll = glm::mix(planeRoll, targetRoll, LERP_FACTOR);
+		planePitch = glm::mix(planePitch, targetPitch, LERP_FACTOR);
+		planeYaw = glm::mix(planeYaw, targetYaw, LERP_FACTOR);
+
+		// 更新速度
+		planeSpeed = glm::clamp(planeSpeed + planeThrottle * ACCELERATION, MIN_SPEED, MAX_SPEED);
+
+		// 更新方向向量
+		glm::mat4 rotation = glm::mat4(1.0f);
+		rotation = glm::rotate(rotation, planeYaw, glm::vec3(0.0f, 1.0f, 0.0f));
+		rotation = glm::rotate(rotation, planePitch, glm::vec3(1.0f, 0.0f, 0.0f));
+		rotation = glm::rotate(rotation, planeRoll, glm::vec3(0.0f, 0.0f, 1.0f));
+
+		planeDirection = glm::vec3(rotation * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f));
+		planeUp = glm::vec3(rotation * glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+
+		// 更新位置
+		planePosition += planeDirection * planeSpeed * 0.016f;
+
+		// 更新相机位置（跟随飞机）
+		glm::vec3 cameraOffset = -planeDirection * 10.0f + planeUp * 3.0f;
+		glm::vec3 cameraPosition = planePosition + cameraOffset;
+		
+		// 更新相机视角
+		canvas->camera->orientLookAt(
+			cameraPosition,     // 相机位置
+			planePosition,      // 看向飞机的位置
+			planeUp            // 使用飞机的上向量作为相机的上向量
+		);
+	}
+
 };
 
+const float MyAppWindow::ROLL_SPEED = 0.5f;
+const float MyAppWindow::PITCH_SPEED = 0.5f;
+const float MyAppWindow::YAW_SPEED = 0.5f;
+const float MyAppWindow::LERP_FACTOR = 0.1f;
+const float MyAppWindow::MIN_SPEED = 0.5f;
+const float MyAppWindow::MAX_SPEED = 3.0f;
+const float MyAppWindow::ACCELERATION = 0.3f;
 
 MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
+	flightMode = false;
+	planeSpeed = MIN_SPEED;
+	planeThrottle = 0.0f;
+	planeRoll = 0.0f;
+	planePitch = 0.0f;
+	planeYaw = 0.0f;
+	targetRoll = 0.0f;
+	targetPitch = 0.0f;
+	targetYaw = 0.0f;
+	planePosition = glm::vec3(0.0f, 10.0f, -20.0f);
+	planeDirection = glm::vec3(0.0f, 0.0f, 1.0f);
+	planeUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	lastMouseX = 0;
+	lastMouseY = 0;
+
 	begin();
 
 	canvas = new MyGLCanvas(10, 10, w() - 320, h() - 20);

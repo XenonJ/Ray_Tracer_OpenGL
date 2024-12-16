@@ -37,6 +37,21 @@
 class MyGLCanvas : public Fl_Gl_Window {
 public:
 
+	// 飞机位置相关变量
+    glm::vec3 meshTranslate;  // 飞机的位移向量
+    glm::vec3 planePosition;  // 飞机当前位置
+    glm::vec3 planeDirection; // 飞机朝向
+    glm::vec3 planeUp;       // 飞机上向量
+    float planeSpeed;        // 飞机速度
+
+	float currentRoll;  // 当前滚转角度
+    float currentPitch; // 当前俯仰角度
+    float currentYaw;   // 当前偏航角度
+    float targetRoll;   // 目标滚转角度
+    float targetPitch;  // 目标俯仰角度 
+    float targetYaw;    // 目标偏航角度
+    float rotationSpeed; // 旋转速度
+    float lerpFactor;   // 插值系数
 	// Frame counter
 	int frameCounter = 0;
 
@@ -57,7 +72,6 @@ public:
 
 	glm::vec3 eyePosition;
 	glm::vec3 rotVec;
-	glm::vec3 meshTranslate;	// translation for mesh rendering
 	// glm::vec3 lookatPoint;
 	// glm::vec3 lightPos;
 	// glm::vec3 rotWorldVec;
