@@ -24,16 +24,16 @@ const float stepSize = 0.1;   // step size for ray marching
 const int MAX_STACK_SIZE = 1000;
 
 // cloud box
-#define bottom -10
-#define top 10
+#define bottom 1
+#define top 5
 #define width 2000
 
 out vec4 outputColor;
 
 // sea box
-#define sea_bottom -1
-#define sea_top 0
-#define sea_width 20
+#define sea_bottom -5
+#define sea_top -4
+#define sea_width 200
 
 // Debug method for visualizing values
 vec4 debug(float value, float minValue, float maxValue) {
@@ -177,7 +177,7 @@ float generateStepJitter(vec3 point, float frequency) {
 }
 
 // Cloud rendering function
-vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
+vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
     vec3 viewDirection = normalize(worldPosition - cameraPosition);
     vec3 step = viewDirection * stepSize;
     vec4 colorSum = vec4(0);
@@ -220,6 +220,13 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition) {
         if (point.x < boxMin.x || point.x > boxMax.x ||
             point.y < boxMin.y || point.y > boxMax.y ||
             point.z < boxMin.z || point.z > boxMax.z) {
+            break;
+        }
+
+        if (depth > 0.0f && 
+            ((point.x - cameraPosition.x) / viewDirection.x > depth || 
+            (point.y - cameraPosition.y) / viewDirection.y > depth || 
+            (point.z - cameraPosition.z) / viewDirection.z > depth)) {
             break;
         }
 
@@ -311,13 +318,13 @@ void computeNormalFromHeight(vec2 pos, float t, out float H, out vec3 N) {
     N = normalize(vec3(-Hx, 1.0, -Hz));
 }
 
-vec4 renderDynamicSea(vec3 cameraPosition, vec3 worldPosition)
+vec4 renderDynamicSea(vec3 cameraPosition, vec3 worldPosition, float depth)
 {
     vec3 viewDirection = normalize(worldPosition - cameraPosition);
     vec3 boxMin = vec3(-sea_width, sea_bottom, -sea_width);
     vec3 boxMax = vec3(sea_width, sea_top, sea_width);
     float tnear = intersectionAABB(boxMin, boxMax, cameraPosition, viewDirection).x;
-    if (abs(tnear - -1.0f) < 1e-8f) {
+    if (abs(tnear - -1.0f) < 1e-8f || (depth > 0.0f && tnear > depth)) {
         return vec4(0.0f);
     }
     vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
@@ -330,7 +337,7 @@ vec4 renderDynamicSea(vec3 cameraPosition, vec3 worldPosition)
     computeNormalFromHeight(pos, time, H, normal);
 
     float diffuse = max(dot(normal, normalize(lightPos - point)), 0.0);
-    vec3 baseColor = vec3(0.0, 0.2, 0.4); // sea color
+    vec3 baseColor = vec3(0.4, 0.6, 0.8); // sea color
     vec4 dynamicSeaColor = vec4(baseColor * diffuse, 1.0);
 
     return dynamicSeaColor;
@@ -340,13 +347,16 @@ vec4 renderDynamicSea(vec3 cameraPosition, vec3 worldPosition)
 
 void main()
 {
-    vec4 color = texture(colorMap, pixelCoords);
-	// outputColor = vec4(color.rgb, 1.0);
-	vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000);
-	outputColor = mix(vec4(color.rgb, 1.0f), cloudColor, cloudColor.a);
+    vec4 color = vec4(texture(colorMap, pixelCoords).rgb, 1.0f);
+    float depth = texture(distanceMap, pixelCoords).r;
+	vec4 cloudColor = renderCloud(rayOrigin,  rayOrigin + rayDirection * 1000, depth);
+    vec4 dynamicSeaColor = renderDynamicSea(rayOrigin,  rayOrigin + rayDirection * 1000, depth);
+    color = mix(color, dynamicSeaColor, dynamicSeaColor.a);
+    color = mix(color, cloudColor, cloudColor.a);
+    outputColor = color;
+	// outputColor = mix(vec4(color.rgb, 1.0f), cloudColor, cloudColor.a);
 	// outputColor = vec4(pixelColor, 1.0f	);
 
-    vec4 seaColor = renderSea(rayOrigin,  rayOrigin + rayDirection * 1000);
-    vec4 dynamicSeaColor = renderDynamicSea(rayOrigin,  rayOrigin + rayDirection * 1000);
-    outputColor = mix(dynamicSeaColor, vec4(cloudColor.rgb, 1.0), cloudColor.a);
+    // vec4 seaColor = renderSea(rayOrigin,  rayOrigin + rayDirection * 1000);
+    // outputColor = mix(dynamicSeaColor, vec4(cloudColor.rgb, 1.0), cloudColor.a);
 }

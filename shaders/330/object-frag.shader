@@ -242,13 +242,14 @@ void main()
     int idx = int(round(ret.x));
     float t = ret.y;
     if (idx < 0) {
-        outColor = vec4(0.0f);
+        outColor = vec4(0.529f, 0.808f, 0.922f, 1.0f);
         outDistance = -1.0f;
     }
     else {
         mesh m = getMesh(idx);
         vec3 worldPosition = rayOrigin + t * rayDirection;
         color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
+        outColor = color;
         outDistance = t;
     }
     // else {   // only intersection
