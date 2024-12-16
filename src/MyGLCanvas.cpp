@@ -39,6 +39,13 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	worleyPoints = CreateWorleyPoints(numCellsPerAxis);
 
 	// noiseTex = nullptr;
+	// initialize cloud data
+	cloudDensity = 1.0f;
+	cloudSpeed = 2.0f;
+	cloudWidth = 250.0f;
+	cloudBottom = 1.0f;
+	cloudTop = 5.0f;
+	sampleRange = 50.0f;
 }
 
 MyGLCanvas::~MyGLCanvas() {
@@ -279,6 +286,21 @@ void MyGLCanvas::drawScene() {
 	glUniform2f(framebufferSizeLoc, float(w()), float(h()));
 
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "frameCounter"), frameCounter);
+	// pass cloud data
+	GLint cloudDensityLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "cloudDensity");
+	GLint cloudSpeedLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "cloudSpeed");
+	GLint cloudWidthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "width");
+	GLint cloudBottomLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "bottom");
+	GLint cloudTopLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "top");
+	GLint sampleRangeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "sampleRange");
+
+	// pass cloud data
+	glUniform1f(cloudDensityLoc, cloudDensity);
+	glUniform1f(cloudSpeedLoc, cloudSpeed);
+	glUniform1f(cloudWidthLoc, cloudWidth);
+	glUniform1f(cloudBottomLoc, cloudBottom);
+	glUniform1f(cloudTopLoc, cloudTop);
+	glUniform1f(sampleRangeLoc, sampleRange);
 
     glDrawArrays(GL_POINTS, 0, w() * h());
 	

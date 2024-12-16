@@ -40,6 +40,14 @@ public:
 	// Frame counter
 	int frameCounter = 0;
 
+	// Cloud Parameters
+	float cloudDensity;
+	float cloudSpeed;
+	float cloudWidth;
+	float cloudBottom;
+	float cloudTop;
+	float sampleRange;
+
 	// Camera
 	float scale;
 	Camera* camera;

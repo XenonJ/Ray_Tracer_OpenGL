@@ -24,10 +24,14 @@ const float stepSize = 0.1;   // step size for ray marching
 const int MAX_STACK_SIZE = 1000;
 
 // cloud box
-#define bottom 1
-#define top 10
-#define width 250
+uniform float bottom;
+uniform float top;
+uniform float width;
 
+// cloud parameters
+uniform float cloudSpeed;
+uniform float cloudDensity;
+uniform float sampleRange;
 out vec4 outputColor;
 
 // sea box
@@ -59,21 +63,21 @@ float noise(vec3 coord) {
 }
 
 // Generate Cloud Noise based on world position
-// 在 getCloudNoise 函数中添加基于距离的细节控制
+// Add detail control based on distance in getCloudNoise function
 float getCloudNoise(vec3 worldPos, float distanceFromCamera) {
-    vec3 coord = worldPos * 0.005;
-    coord.x += frameCounter * 0.0002;
-    coord.z += frameCounter * 0.0002;
-    coord.y -= frameCounter * 0.0002;
+    vec3 coord = worldPos * (sampleRange * 0.0001);
+    coord.x += frameCounter * (cloudSpeed * 0.0001);
+    coord.z += frameCounter * (cloudSpeed * 0.0001);
+    coord.y -= frameCounter * (cloudSpeed * 0.0001);
 
     
-    // 基于距离计算细节层级
+    // Calculate detail level based on distance
     float detailFactor = 1.0 - smoothstep(0.0, 1000.0, distanceFromCamera);
     
-    // 基础噪声层
+    // Base noise layer
     float n = noise(coord) * 0.55;
     
-    // 根据距离动态添加细节层
+    // Dynamically add detail layers based on distance
     if(detailFactor > 0.3) {
         coord *= 3.0;
         n += noise(coord) * 0.25 * detailFactor;
@@ -102,16 +106,16 @@ float getDensity(vec3 pos, float distanceFromCamera) {
     vec3 boxMin = vec3(-width, bottom, -width);
     vec3 boxMax = vec3(width, top, width);
     
-    // 增加边界过渡区域的宽度
+    // Increase the width of boundary transition zone
     float transitionWidth = width * 0.3;
     float transitionHeight = (top - bottom) * 0.5;
     
-    // 计算到边界的距离
+    // Calculate distance to boundaries
     float distToEdgeX = min(abs(pos.x - boxMin.x), abs(pos.x - boxMax.x));
     float distToEdgeZ = min(abs(pos.z - boxMin.z), abs(pos.z - boxMax.z));
     float distToEdgeY = min(abs(pos.y - boxMin.y), abs(pos.y - boxMax.y));
     
-    // 计算边界权重
+    // Calculate boundary weights
     float horizontalEdgeFade = min(distToEdgeX, distToEdgeZ);
     float horizontalWeight = smoothstep(0.0, transitionWidth, horizontalEdgeFade);
 
@@ -119,23 +123,23 @@ float getDensity(vec3 pos, float distanceFromCamera) {
     
     float edgeWeight = pow(verticalWeight, 4);
     
-    // 原有的高度权重计算
+    // Original height weight calculation
     float mid = (bottom + top) / 2.0;
     float h = top - bottom;
     float heightWeight = 1.0 - 2.0 * abs(mid - pos.y) / h;
     heightWeight = pow(heightWeight, 0.25);
     heightWeight = smoothstep(0.0, 1.0, heightWeight);
     
-    // 获取基础噪声
+    // Get base noise
     float noise = getCloudNoise(pos, distanceFromCamera);
     
-    // 在边界附近削弱噪声
+    // Weaken noise near boundaries
     noise *= edgeWeight;
     
-    float density = noise ;
+    float density = noise;
     
-    // 提高密度阈值
-    if(density < 0.01) {
+    // Increase density threshold
+    if(density < 0.01 / cloudDensity) {
         density = 0.0;
     }
     

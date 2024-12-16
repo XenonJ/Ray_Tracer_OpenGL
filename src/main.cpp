@@ -29,10 +29,13 @@ public:
 	Fl_Button* openPlyFileButton;
 	Fl_Button* openPlaneButton;
 
-	// shape
-	Fl_Slider* segmentsXSlider;
-	Fl_Slider* segmentsYSlider;
-
+	// cloud
+	Fl_Slider* cloudWidthSlider;
+	Fl_Slider* cloudBottomSlider;
+	Fl_Slider* cloudTopSlider;
+	Fl_Slider* cloudSpeedSlider;
+	Fl_Slider* cloudDensitySlider;
+	Fl_Slider* sampleRangeSlider;
 	// rotate
 	Fl_Slider* rotUSlider;
 	Fl_Slider* rotVSlider;
@@ -112,8 +115,12 @@ public:
 
 private:
 	void updateGUIValues() {
-		segmentsXSlider->value(canvas->segmentsX);
-		segmentsYSlider->value(canvas->segmentsY);
+		cloudWidthSlider->value(canvas->cloudWidth);
+		cloudBottomSlider->value(canvas->cloudBottom);
+		cloudTopSlider->value(canvas->cloudTop);
+		cloudSpeedSlider->value(canvas->cloudSpeed);
+		cloudDensitySlider->value(canvas->cloudDensity);
+		sampleRangeSlider->value(canvas->sampleRange);
 
 		rotUSlider->value(canvas->camera->rotU);
 		rotVSlider->value(canvas->camera->rotV);
@@ -234,6 +241,18 @@ private:
 		win->canvas->setSegments();
 	}
 
+	static void cloudCB(Fl_Widget* w, void* userdata) {
+		float value = ((Fl_Slider*)w)->value();
+		printf("value: %f\n", value);
+		*((float*)userdata) = value;
+		printf("cloudWidth: %f\n", win->canvas->cloudWidth);
+		printf("cloudBottom: %f\n", win->canvas->cloudBottom);
+		printf("cloudTop: %f\n", win->canvas->cloudTop);
+		printf("cloudSpeed: %f\n", win->canvas->cloudSpeed);
+		printf("cloudDensity: %f\n", win->canvas->cloudDensity);
+		printf("sampleRange: %f\n", win->canvas->sampleRange);
+	}
+
 	static void cameraRotateCB(Fl_Widget* w, void* userdata) {
 		win->canvas->camera->setRotUVW(win->rotUSlider->value(), win->rotVSlider->value(), win->rotWSlider->value());
 	}
@@ -271,8 +290,8 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 		loadPack->spacing(0);
 		loadPack->begin();
 
-			openSceneFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load File");
-			openSceneFileButton->callback(loadSceneFileCB, (void*)this);
+			// openSceneFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load File");
+			// openSceneFileButton->callback(loadSceneFileCB, (void*)this);
 
 			openPlyFileButton = new Fl_Button(0, 0, packCol1->w() - 20, 20, "Load PLY File");
 			openPlyFileButton->callback(loadPLYFileCB, (void*)this);
@@ -282,70 +301,75 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 
 		loadPack->end();
 
-		Fl_Pack* radioPack = new Fl_Pack(w() - 100, 30, 100, h(), "Shape");
+		Fl_Pack* radioPack = new Fl_Pack(w() - 100, 30, 100, h(), "Cloud Panel");
 		radioPack->box(FL_DOWN_FRAME);
 		radioPack->labelfont(1);
 		radioPack->type(Fl_Pack::VERTICAL);
 		radioPack->spacing(0);
 		radioPack->begin();
-			//slider for controlling number of segments in X
-			Fl_Box *segmentsXTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "SegmentsX");
-			segmentsXSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
-			segmentsXSlider->align(FL_ALIGN_TOP);
-			segmentsXSlider->type(FL_HOR_SLIDER);
-			segmentsXSlider->bounds(3, 60);
-			segmentsXSlider->step(1);
-			segmentsXSlider->value(canvas->segmentsX);
-			segmentsXSlider->callback(segmentsCB, (void*)(&(canvas->segmentsX)));
+			//slider for controlling cloud width
+			Fl_Box *cloudWidthTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "Cloud Width");
+			cloudWidthSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			cloudWidthSlider->align(FL_ALIGN_TOP);
+			cloudWidthSlider->type(FL_HOR_SLIDER);
+			cloudWidthSlider->bounds(0, 500);
+			cloudWidthSlider->step(10);
+			cloudWidthSlider->value(canvas->cloudWidth);
+			cloudWidthSlider->callback(cloudCB, (void*)(&(canvas->cloudWidth)));
+
+			//slider for controlling cloud speed
+			Fl_Box *cloudSpeedTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "Cloud Speed");
+			cloudSpeedSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			cloudSpeedSlider->align(FL_ALIGN_TOP);
+			cloudSpeedSlider->type(FL_HOR_SLIDER);
+			cloudSpeedSlider->bounds(0, 10);
+			cloudSpeedSlider->step(0.1);
+			cloudSpeedSlider->value(canvas->cloudSpeed);
+			cloudSpeedSlider->callback(cloudCB, (void*)(&(canvas->cloudSpeed)));
+
+			//slider for controlling cloud density
+			Fl_Box *cloudDensityTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "Cloud Density");
+			cloudDensitySlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			cloudDensitySlider->align(FL_ALIGN_TOP);
+			cloudDensitySlider->type(FL_HOR_SLIDER);
+			cloudDensitySlider->bounds(0, 1);
+			cloudDensitySlider->step(0.01);
+			cloudDensitySlider->value(canvas->cloudDensity);
+			cloudDensitySlider->callback(cloudCB, (void*)(&(canvas->cloudDensity)));
 
 
 			//slider for controlling number of segments in Y
-			Fl_Box *segmentsYTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "SegmentsY");
-			segmentsYSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
-			segmentsYSlider->align(FL_ALIGN_TOP);
-			segmentsYSlider->type(FL_HOR_SLIDER);
-			segmentsYSlider->bounds(3, 60);
-			segmentsYSlider->step(1);
-			segmentsYSlider->value(canvas->segmentsY);
-			segmentsYSlider->callback(segmentsCB, (void*)(&(canvas->segmentsY)));
+			Fl_Box *cloudBottomTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "Cloud Bottom");
+			cloudBottomSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			cloudBottomSlider->align(FL_ALIGN_TOP);
+			cloudBottomSlider->type(FL_HOR_SLIDER);
+			cloudBottomSlider->bounds(0, 100);
+			cloudBottomSlider->step(1);
+			cloudBottomSlider->value(canvas->cloudBottom);
+			cloudBottomSlider->callback(cloudCB, (void*)(&(canvas->cloudBottom)));
 
+			//slider for controlling cloud top
+			Fl_Box *cloudTopTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "Cloud Top");
+			cloudTopSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			cloudTopSlider->align(FL_ALIGN_TOP);
+			cloudTopSlider->type(FL_HOR_SLIDER);
+			cloudTopSlider->bounds(0, 100);
+			cloudTopSlider->step(1);
+			cloudTopSlider->value(canvas->cloudTop);
+			cloudTopSlider->callback(cloudCB, (void*)(&(canvas->cloudTop)));
+
+			//slider for controlling sample range
+			Fl_Box *sampleRangeTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "Sample Range");
+			sampleRangeSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			sampleRangeSlider->align(FL_ALIGN_TOP);
+			sampleRangeSlider->type(FL_HOR_SLIDER);
+			sampleRangeSlider->bounds(0, 100);
+			sampleRangeSlider->step(1);
+			sampleRangeSlider->value(canvas->sampleRange);
+			sampleRangeSlider->callback(cloudCB, (void*)(&(canvas->sampleRange)));
 		radioPack->end();
 
-		Fl_Pack* rotPack = new Fl_Pack(w() - 100, 30, 100, h(), "Camera Rotate");
-		rotPack->box(FL_DOWN_FRAME);
-		rotPack->labelfont(1);
-		rotPack->type(Fl_Pack::VERTICAL);
-		rotPack->spacing(0);
-		rotPack->begin();
-
-			Fl_Box *rotUTextBox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "RotateU");
-			rotUSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
-			rotUSlider->align(FL_ALIGN_TOP);
-			rotUSlider->type(FL_HOR_SLIDER);
-			rotUSlider->bounds(-179, 179);
-			rotUSlider->step(1);
-			rotUSlider->value(canvas->camera->rotU);
-			rotUSlider->callback(cameraRotateCB);
-
-			Fl_Box *rotVTextBox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "RotateV");
-			rotVSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
-			rotVSlider->align(FL_ALIGN_TOP);
-			rotVSlider->type(FL_HOR_SLIDER);
-			rotVSlider->bounds(-179, 179);
-			rotVSlider->step(1);
-			rotVSlider->value(canvas->camera->rotV);
-			rotVSlider->callback(cameraRotateCB);
-
-			Fl_Box *rotWTextBox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "RotateW");
-			rotWSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
-			rotWSlider->align(FL_ALIGN_TOP);
-			rotWSlider->type(FL_HOR_SLIDER);
-			rotWSlider->bounds(-179, 179);
-			rotWSlider->step(1);
-			rotWSlider->value(canvas->camera->rotW);
-			rotWSlider->callback(cameraRotateCB);
-
-		rotPack->end();
+		
 
 
 	packCol1->end();
@@ -410,6 +434,42 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 			meshBackButton->callback(meshBACKCB, (void*)this);
 
 		meshTransPack->end();
+
+		Fl_Pack* rotPack = new Fl_Pack(w() - 100, 30, 100, h(), "Camera Rotate");
+		rotPack->box(FL_DOWN_FRAME);
+		rotPack->labelfont(1);
+		rotPack->type(Fl_Pack::VERTICAL);
+		rotPack->spacing(0);
+		rotPack->begin();
+
+			Fl_Box *rotUTextBox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "RotateU");
+			rotUSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			rotUSlider->align(FL_ALIGN_TOP);
+			rotUSlider->type(FL_HOR_SLIDER);
+			rotUSlider->bounds(-179, 179);
+			rotUSlider->step(1);
+			rotUSlider->value(canvas->camera->rotU);
+			rotUSlider->callback(cameraRotateCB);
+
+			Fl_Box *rotVTextBox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "RotateV");
+			rotVSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			rotVSlider->align(FL_ALIGN_TOP);
+			rotVSlider->type(FL_HOR_SLIDER);
+			rotVSlider->bounds(-179, 179);
+			rotVSlider->step(1);
+			rotVSlider->value(canvas->camera->rotV);
+			rotVSlider->callback(cameraRotateCB);
+
+			Fl_Box *rotWTextBox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "RotateW");
+			rotWSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			rotWSlider->align(FL_ALIGN_TOP);
+			rotWSlider->type(FL_HOR_SLIDER);
+			rotWSlider->bounds(-179, 179);
+			rotWSlider->step(1);
+			rotWSlider->value(canvas->camera->rotW);
+			rotWSlider->callback(cameraRotateCB);
+
+		rotPack->end();
 
 	packCol2->end();
 
