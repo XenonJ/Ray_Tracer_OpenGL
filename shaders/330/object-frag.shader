@@ -37,6 +37,14 @@ in vec3 rayDirection;   // normalized direction for current ray
 const float PI = 3.14159265359;
 const int MAX_STACK_SIZE = 1000;
 
+#define MAX_WAVES 219
+
+uniform int waveCount;
+uniform vec2 waveDir[MAX_WAVES];
+uniform float waveOmega[MAX_WAVES];
+uniform float waveAmplitude[MAX_WAVES];
+uniform float wavePhaseOffset[MAX_WAVES];
+
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out float outDistance;
 // out vec4 outputColor;
@@ -242,31 +250,14 @@ vec4 calculateRGB(vec3 origin, vec3 direction) {
 #define sea_top -4
 #define sea_width 200
 
-// ocean IFFT (simplified simulation)
-const int freqCount = 4;
-const vec2 freqDir[freqCount] = vec2[](
-    vec2(1.0, 0.0),
-    vec2(0.7, 0.7),
-    vec2(-0.5, 1.0),
-    vec2(-1.0, -0.2)
-);
-const float freqOmega[freqCount] = float[](
-    0.8, 1.2, 0.5, 0.9
-);
-const float freqAmp[freqCount] = float[](
-    0.05, 0.03, 0.04, 0.02
-);
-const float freqPhaseOffset[freqCount] = float[](
-    0.0, 1.0, 2.0, 0.5
-);
+
 
 
 float computeHeightFromIFFT(vec2 pos, float t) {
     float height = 0.0;
-    // h(x) = sum_k (A_k * exp(i*(freqDir·x - omega_k*t + phase_k)))
-    for (int i=0; i<freqCount; i++) {
-        float phase = dot(freqDir[i], pos) * freqOmega[i] - freqOmega[i]*t + freqPhaseOffset[i];
-        height += freqAmp[i]*sin(phase);
+    for (int i = 0; i < waveCount; i++) {
+        float phase = dot(waveDir[i], pos) * waveOmega[i] - waveOmega[i]*t + wavePhaseOffset[i];
+        height += waveAmplitude[i] * sin(phase);
     }
     return height;
 }
