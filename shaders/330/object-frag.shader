@@ -252,8 +252,10 @@ vec4 calculateRGB(vec3 origin, vec3 direction) {
 
 
 
-
-float computeHeightFromIFFT(vec2 pos, float t) {
+// The wave height is calculated using the equation:
+//     H = A * sin(k · x - ωt + φ)
+// where A is the amplitude, k is the wave direction, ω is the frequency, and φ is the phase offset.
+float calculateWaveHeight(vec2 pos, float t) {
     float height = 0.0;
     for (int i = 0; i < waveCount; i++) {
         float phase = dot(waveDir[i], pos) * waveOmega[i] - waveOmega[i]*t + wavePhaseOffset[i];
@@ -262,11 +264,12 @@ float computeHeightFromIFFT(vec2 pos, float t) {
     return height;
 }
 
+// This gradient(slope of the surface) defines the normal vector.
 void computeNormalFromHeight(vec2 pos, float t, out float H, out vec3 N) {
     float epsilon = 0.001;
-    float H0 = computeHeightFromIFFT(pos, t);
-    float Hx = (computeHeightFromIFFT(pos + vec2(epsilon,0), t) - computeHeightFromIFFT(pos - vec2(epsilon,0), t)) / (2.0*epsilon);
-    float Hz = (computeHeightFromIFFT(pos + vec2(0,epsilon), t) - computeHeightFromIFFT(pos - vec2(0,epsilon), t)) / (2.0*epsilon);
+    float H0 = calculateWaveHeight(pos, t);
+    float Hx = (calculateWaveHeight(pos + vec2(epsilon,0), t) - calculateWaveHeight(pos - vec2(epsilon,0), t)) / (2.0*epsilon);
+    float Hz = (calculateWaveHeight(pos + vec2(0,epsilon), t) - calculateWaveHeight(pos - vec2(0,epsilon), t)) / (2.0*epsilon);
     H = H0;
     N = normalize(vec3(-Hx, 1.0, -Hz));
 }
