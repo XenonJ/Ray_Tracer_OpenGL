@@ -235,23 +235,23 @@ vec4 calculateRGB() {
 
 void main()
 {
-    outColor = vec4(0.5f);
-    outDistance = 1.0f;
-    vec4 color = vec4(0.0f);
-    vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
-    int idx = int(round(ret.x));
-    float t = ret.y;
-    if (idx < 0) {
-        outColor = vec4(0.0f);
-        outDistance = -1.0f;
-    }
-    else {
-        mesh m = getMesh(idx);
-        vec3 worldPosition = rayOrigin + t * rayDirection;
-        color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
-        outDistance = t;
-    }
-    // else {   // only intersection
-    //     return vec4(1.0f);
+    // outColor = vec4(0.5f);
+    // outDistance = 1.0f;
+    // vec4 color = vec4(0.0f);
+    // vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
+    // int idx = int(round(ret.x));
+    // float t = ret.y;
+    // if (idx < 0) {
+    //     outColor = vec4(0.0f);
+    //     outDistance = -1.0f;
     // }
+    // else {
+    //     mesh m = getMesh(idx);
+    //     vec3 worldPosition = rayOrigin + t * rayDirection;
+    //     color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
+    //     outDistance = t;
+    // }
+    // // else {   // only intersection
+    // //     return vec4(1.0f);
+    // // }
 }
