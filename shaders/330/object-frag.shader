@@ -330,16 +330,25 @@ void main()
     int idx = int(round(ret.x));
     float t = ret.y;
     vec4 dynamicSeaColor = renderDynamicSea(rayOrigin,  rayOrigin + rayDirection * 1000, t);
-    if (idx < 0) {
+    if (idx < 0) {  // no intersection with mesh
         outColor = mix(vec4(0.529f, 0.808f, 0.922f, 1.0f), dynamicSeaColor, dynamicSeaColor.a);
         outDistance = -1.0f;
     }
     else {
-        mesh m = getMesh(idx);
-        vec3 worldPosition = rayOrigin + t * rayDirection;
-        color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
-        outColor = color;
-        outDistance = t;
+        vec3 boxMin = vec3(-sea_width, sea_bottom, -sea_width);
+        vec3 boxMax = vec3(sea_width, sea_top, sea_width);
+        float tnear = intersectionAABB(boxMin, boxMax, rayOrigin, rayDirection).x;
+        if (t < tnear) {
+            mesh m = getMesh(idx);
+            vec3 worldPosition = rayOrigin + t * rayDirection;
+            color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
+            outColor = color;
+            outDistance = t;
+        }
+        else {  // mesh is under water
+            outColor = dynamicSeaColor;
+            outDistance = tnear;
+        }
     }
     // else {   // only intersection
     //     return vec4(1.0f);
