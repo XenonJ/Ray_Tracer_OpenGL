@@ -58,6 +58,10 @@ public:
 	Fl_Button* meshForwardButton;
 	Fl_Button* meshBackButton;
 
+	// segments
+	Fl_Slider* segmentsXSlider;
+	Fl_Slider* segmentsYSlider;
+
 	MyGLCanvas* canvas;
 	TextureManager* myTextureManager;
 
@@ -285,9 +289,9 @@ private:
 MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 	begin();
 
-	canvas = new MyGLCanvas(10, 10, w() - 320, h() - 20);
+	canvas = new MyGLCanvas(10, 10, w() - 470, h() - 20);
 
-	Fl_Pack* packCol1 = new Fl_Pack(w() - 310, 30, 150, h(), "");
+	Fl_Pack* packCol1 = new Fl_Pack(w()- 465, 30, 150, h(), "");
 	packCol1->box(FL_DOWN_FRAME);
 	packCol1->type(Fl_Pack::VERTICAL);
 	packCol1->spacing(30);
@@ -400,7 +404,7 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 	packCol1->end();
 
 
-	Fl_Pack* packCol2 = new Fl_Pack(w() - 155, 30, 150, h(), "");
+	Fl_Pack* packCol2 = new Fl_Pack(w() - 310, 30, 150, h(), "");
 	packCol2->box(FL_DOWN_FRAME);
 	packCol2->type(Fl_Pack::VERTICAL);
 	packCol2->spacing(30);
@@ -498,11 +502,46 @@ MyAppWindow::MyAppWindow(int W, int H, const char* L) : Fl_Window(W, H, L) {
 
 	packCol2->end();
 
+	Fl_Pack* packCol3 = new Fl_Pack(w() - 155, 30, 150, h(), "");
+	packCol3->box(FL_DOWN_FRAME);
+	packCol3->type(Fl_Pack::VERTICAL);
+	packCol3->spacing(30);
+	packCol3->begin();
+
+		Fl_Pack* segmentsPack = new Fl_Pack(w() - 100, 30, 100, h(), "Shape");
+		segmentsPack->box(FL_DOWN_FRAME);
+		segmentsPack->labelfont(1);
+		segmentsPack->type(Fl_Pack::VERTICAL);
+		segmentsPack->spacing(0);
+		segmentsPack->begin();
+
+			Fl_Box *segmentsXTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "SegmentsX");
+			segmentsXSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			segmentsXSlider->align(FL_ALIGN_TOP);
+			segmentsXSlider->type(FL_HOR_SLIDER);
+			segmentsXSlider->bounds(3, 60);
+			segmentsXSlider->step(1);
+			segmentsXSlider->value(canvas->segmentsX);
+			segmentsXSlider->callback(segmentsCB, (void*)(&(canvas->segmentsX)));
+
+			Fl_Box *segmentsYTextbox = new Fl_Box(0, 0, packCol1->w() - 20, 20, "SegmentsY");
+			segmentsYSlider = new Fl_Value_Slider(0, 0, packCol1->w() - 20, 20, "");
+			segmentsYSlider->align(FL_ALIGN_TOP);
+			segmentsYSlider->type(FL_HOR_SLIDER);
+			segmentsYSlider->bounds(3, 60);
+			segmentsYSlider->step(1);
+			segmentsYSlider->value(canvas->segmentsY);
+			segmentsYSlider->callback(segmentsCB, (void*)(&(canvas->segmentsY)));
+		
+		segmentsPack->end();
+
+	packCol3->end();
+
 	end();
 }
 
 int main(int argc, char** argv) {
-	win = new MyAppWindow(850, 475, "Environment Mapping");
+	win = new MyAppWindow(1000, 475, "Environment Mapping");
 	win->resizable(win);
 	Fl::add_idle(MyAppWindow::idleCB);
 	win->show();

@@ -249,10 +249,10 @@ void MyGLCanvas::drawScene() {
 		glUniform1i(treeSizeLoc, treeSize);
 
 		// pass light
-		SceneLightData lightData;
-		if (parser && parser->getLightData(0, lightData)) {
-			glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
-		}
+		// SceneLightData lightData;
+		// if (parser && parser->getLightData(0, lightData)) {
+		// 	glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
+		// }
 	}
 
     // draw pixels
