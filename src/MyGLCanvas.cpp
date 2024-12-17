@@ -1,6 +1,7 @@
 #include "MyGLCanvas.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "shaders/ocean.h"
 
 MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window(x, y, w, h, l) {
 	mode(FL_OPENGL3 | FL_RGB | FL_ALPHA | FL_DEPTH | FL_DOUBLE);
@@ -275,6 +276,47 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(heightLoc, camera->getScreenHeight());
 	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(300.0f)));	// default light
 	glUniform2f(framebufferSizeLoc, float(w()), float(h()));
+
+
+	std::vector<WaveData> waves = generatePhillipsSpectrum();
+	GLuint progID = myShaderManager->getShaderProgram("environmentShaders")->programID;
+
+	int count = (int)waves.size();
+	std::vector<GLfloat> dirData;
+	dirData.reserve(count*2);
+	std::vector<GLfloat> omegaData;
+	omegaData.reserve(count);
+	std::vector<GLfloat> ampData;
+	ampData.reserve(count);
+	std::vector<GLfloat> phaseData;
+	phaseData.reserve(count);
+
+	for (auto &w : waves) {
+		dirData.push_back(w.dirX);
+		dirData.push_back(w.dirZ);
+		omegaData.push_back(w.omega);
+		ampData.push_back(w.amplitude);
+		phaseData.push_back(w.phaseOffset);
+	}
+
+	GLint waveCountLoc = glGetUniformLocation(progID, "waveCount");
+	glUniform1i(waveCountLoc, count);
+
+	GLint waveDirLoc = glGetUniformLocation(progID, "waveDir");
+	glUniform2fv(waveDirLoc, count, dirData.data());
+
+	GLint waveOmegaLoc = glGetUniformLocation(progID, "waveOmega");
+	glUniform1fv(waveOmegaLoc, count, omegaData.data());
+
+	GLint waveAmplitudeLoc = glGetUniformLocation(progID, "waveAmplitude");
+	glUniform1fv(waveAmplitudeLoc, count, ampData.data());
+
+	GLint wavePhaseOffsetLoc = glGetUniformLocation(progID, "wavePhaseOffset");
+	glUniform1fv(wavePhaseOffsetLoc, count, phaseData.data());
+
+	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "frameCounter"), frameCounter);
+
+	glDrawArrays(GL_POINTS, 0, w() * h());
 
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "frameCounter"), frameCounter);
 
