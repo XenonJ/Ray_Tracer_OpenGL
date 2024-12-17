@@ -111,9 +111,7 @@ Precondition:
 Postcondition: 'color' array memory is deleted,
 =============================================== */ 
 ppm::~ppm(){
-	if (textureID != -1) {
-		glDeleteTextures(1, &textureID);
-	}
+	releaseTexture();
 	
 	if (color!=NULL){
 		delete[] color;
@@ -157,12 +155,15 @@ unsigned int ppm::bindTexture() {
 }
 
 unsigned int ppm::bindTexture3D(unsigned int sizeT) {
+	printf("----------------------------------Binding texture 3d----------------------------------\n");
+	printf("texture id----: %d\n", textureID);
     if (textureID == -1) {
         glGenTextures(1, &textureID);
     }
 
     // Bind 3D texture
     glBindTexture(GL_TEXTURE_3D, textureID);
+	printf("texture id: %d\n", textureID);
 
     // Set 3D texture parameters
     glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -200,12 +201,21 @@ unsigned int ppm::bindTexture3D(unsigned int sizeT) {
 
     // Upload the 3D texture data to GPU
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, tex2Dsize, tex2Dsize, depth, 0, GL_RGB, GL_UNSIGNED_BYTE, fimage);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_3D, textureID);
 
     delete[] fimage;
-
+	printf("texture 3d bound\n");
     return textureID;
 }
 
 unsigned int ppm::getTextureID() {
 	return textureID;
+}
+
+void ppm::releaseTexture() {
+	if (textureID != -1) {
+		glDeleteTextures(1, &textureID);
+		textureID = -1;
+	}
 }

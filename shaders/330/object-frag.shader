@@ -24,7 +24,11 @@ uniform samplerBuffer treeBuffer[6];   // assume max 6 buffers
 uniform int treeSize; // mesh count
 uniform int rootIndex;  // index for kdtree root node
 
+uniform int frameCounter;   // incr per frame
+
 uniform vec3 lightPos;  // light position in world space
+
+uniform vec3 meshTrans; // mesh translation
 
 in vec3 pixelColor; // some background calculated by pixel(i, j)
 in vec3 rayOrigin;  // camera position
@@ -32,6 +36,14 @@ in vec3 rayDirection;   // normalized direction for current ray
 
 const float PI = 3.14159265359;
 const int MAX_STACK_SIZE = 1000;
+
+#define MAX_WAVES 219
+
+uniform int waveCount;
+uniform vec2 waveDir[MAX_WAVES];
+uniform float waveOmega[MAX_WAVES];
+uniform float waveAmplitude[MAX_WAVES];
+uniform float wavePhaseOffset[MAX_WAVES];
 
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out float outDistance;
@@ -215,10 +227,10 @@ vec2 intersectionKDTree(vec3 origin, vec3 direction) {
     return vec2(idx, t);
 }
 
-vec4 calculateRGB() {
+vec4 calculateRGB(vec3 origin, vec3 direction) {
     vec4 color = vec4(0.0f);
     // vec2 ret = intersection(rayOrigin, rayDirection);
-    vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
+    vec2 ret = intersectionKDTree(origin, direction);
     int idx = int(round(ret.x));
     float t = ret.y;
     if (idx < 0) {
@@ -228,29 +240,118 @@ vec4 calculateRGB() {
     //     return vec4(1.0f);
     // }
     mesh m = getMesh(idx);
-    vec3 worldPosition = rayOrigin + t * rayDirection;
+    vec3 worldPosition = origin + t * direction;
     color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
     return color;
 }
 
+// sea box
+#define sea_bottom -5
+#define sea_top -4
+#define sea_width 200
+
+
+
+// The wave height is calculated using the equation:
+//     H = A * sin(k · x - ωt + φ)
+// where A is the amplitude, k is the wave direction, ω is the frequency, and φ is the phase offset.
+float calculateWaveHeight(vec2 pos, float t) {
+    float height = 0.0;
+    for (int i = 0; i < waveCount; i++) {
+        float phase = dot(waveDir[i], pos) * waveOmega[i] - waveOmega[i]*t + wavePhaseOffset[i];
+        height += waveAmplitude[i] * sin(phase);
+    }
+    return height;
+}
+
+// This gradient(slope of the surface) defines the normal vector.
+void computeNormalFromHeight(vec2 pos, float t, out float H, out vec3 N) {
+    float epsilon = 0.001;
+    float H0 = calculateWaveHeight(pos, t);
+    float Hx = (calculateWaveHeight(pos + vec2(epsilon,0), t) - calculateWaveHeight(pos - vec2(epsilon,0), t)) / (2.0*epsilon);
+    float Hz = (calculateWaveHeight(pos + vec2(0,epsilon), t) - calculateWaveHeight(pos - vec2(0,epsilon), t)) / (2.0*epsilon);
+    H = H0;
+    N = normalize(vec3(-Hx, abs(1.0), -Hz));
+}
+
+vec4 renderDynamicSea(vec3 cameraPosition, vec3 worldPosition, float depth)
+{
+    vec3 viewDirection = normalize(worldPosition - cameraPosition);
+    vec3 boxMin = vec3(-sea_width, sea_bottom, -sea_width);
+    vec3 boxMax = vec3(sea_width, sea_top, sea_width);
+    float tnear = intersectionAABB(boxMin, boxMax, cameraPosition, viewDirection).x;
+    if (abs(tnear - -1.0f) < 1e-8f || (depth > 0.0f && tnear > depth)) {
+        return vec4(0.0f);
+    }
+    vec3 point = cameraPosition + viewDirection * max(tnear, 0.0);
+
+    vec2 pos = vec2(point.x, point.z);
+    float time = float(frameCounter)*0.05; // dynamic time
+
+    float H;
+    vec3 normal;
+    computeNormalFromHeight(pos, time, H, normal);
+
+    float diffuse;
+
+    // compute shadow from mesh
+    vec3 rayToLight = normalize(lightPos - point);
+    mat4 mat = mat4(1.0f);
+    mat[3] = vec4(meshTrans, 1.0f);
+    vec3 origin = (inverse(mat) * vec4(point, 1.0f)).xyz;
+    vec3 direction = (inverse(mat) * vec4(rayToLight, 0.0f)).xyz;
+    vec2 intersectionToLight = intersectionKDTree(origin, direction);
+    if (intersectionToLight.x > 0.0f) {
+        diffuse = 0.0f;
+    }
+    else {
+        diffuse = max(dot(normal, normalize(lightPos - point)), 0.0);
+    }
+
+    vec3 baseColor = vec3(0.4, 0.6, 0.8); // sea color
+    vec4 dynamicSeaColor = vec4(baseColor * diffuse, 1.0);
+
+    // compute reflection on the water
+    vec3 reflectionRay = reflect(viewDirection, normal);
+    reflectionRay = (inverse(mat) * vec4(reflectionRay, 0.0f)).xyz;
+    vec4 reflectionColor = calculateRGB(origin, reflectionRay);
+
+    dynamicSeaColor = mix(dynamicSeaColor, reflectionColor, 0.5f);
+
+    return dynamicSeaColor;
+}
+
 void main()
 {
-    outColor = vec4(0.5f);
-    outDistance = 1.0f;
     vec4 color = vec4(0.0f);
-    vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
+    mat4 mat = mat4(1.0f);
+    mat[3] = vec4(meshTrans, 1.0f);
+    vec3 origin = (inverse(mat) * vec4(rayOrigin, 1.0f)).xyz;
+    vec3 direction = (inverse(mat) * vec4(rayDirection, 0.0f)).xyz;
+    vec2 ret = intersectionKDTree(origin, direction);
+    // vec2 ret = intersectionKDTree(rayOrigin, rayDirection);
     int idx = int(round(ret.x));
     float t = ret.y;
-    if (idx < 0) {
-        outColor = vec4(0.0f);
+    vec4 dynamicSeaColor = renderDynamicSea(rayOrigin,  rayOrigin + rayDirection * 1000, t);
+    if (idx < 0) {  // no intersection with mesh
+        outColor = mix(vec4(0.529f, 0.808f, 0.922f, 1.0f), dynamicSeaColor, dynamicSeaColor.a);
         outDistance = -1.0f;
     }
     else {
-        mesh m = getMesh(idx);
-        vec3 worldPosition = rayOrigin + t * rayDirection;
-        color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
-        outColor = color;
-        outDistance = t;
+        vec3 boxMin = vec3(-sea_width, sea_bottom, -sea_width);
+        vec3 boxMax = vec3(sea_width, sea_top, sea_width);
+        float tnear = intersectionAABB(boxMin, boxMax, rayOrigin, rayDirection).x;
+        if (t < tnear) {
+            mesh m = getMesh(idx);
+            vec3 worldPosition = rayOrigin + t * rayDirection;
+            color = vec4(m.diffuseColor * max(dot(normalize(lightPos - worldPosition), m.faceNormal), 0.0f), 1.0f);
+            outColor = color;
+            outDistance = t;
+        }
+        else {  // mesh is under water
+            outColor = dynamicSeaColor;
+            outDistance = tnear;
+        }
     }
     // else {   // only intersection
     //     return vec4(1.0f);

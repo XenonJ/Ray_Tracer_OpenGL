@@ -1,6 +1,7 @@
 #include "MyGLCanvas.h"
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "shaders/ocean.h"
 
 MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window(x, y, w, h, l) {
 	mode(FL_OPENGL3 | FL_RGB | FL_ALPHA | FL_DEPTH | FL_DOUBLE);
@@ -39,6 +40,13 @@ MyGLCanvas::MyGLCanvas(int x, int y, int w, int h, const char* l) : Fl_Gl_Window
 	worleyPoints = CreateWorleyPoints(numCellsPerAxis);
 
 	// noiseTex = nullptr;
+	// initialize cloud data
+	cloudDensity = 1.0f;
+	cloudSpeed = 2.0f;
+	cloudWidth = 250.0f;
+	cloudBottom = 1.0f;
+	cloudTop = 5.0f;
+	sampleRange = 50.0f;
 }
 
 MyGLCanvas::~MyGLCanvas() {
@@ -51,7 +59,8 @@ MyGLCanvas::~MyGLCanvas() {
 void MyGLCanvas::initShaders() {
 	printf("init shaders\n");
 	myTextureManager->loadTexture3D("noiseTex", "./data/ppm/tiled_worley_noise.ppm");
-	myTextureManager->loadTexture("seaTex", "./data/ppm/sea.ppm");
+	myTextureManager->loadTexture("seaTex", "./data/ppm/sea1.ppm");
+	myTextureManager->loadTexture("seaNormalTex", "./data/ppm/sea1_normal.ppm");
 	myShaderManager->addShaderProgram("objectShaders", "shaders/330/object-vert.shader", "shaders/330/object-frag.shader");
 	myShaderManager->addShaderProgram("environmentShaders", "shaders/330/environment-vert.shader", "shaders/330/environment-frag.shader");
 }
@@ -148,6 +157,7 @@ void MyGLCanvas::drawScene() {
     GLint widthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenWidth");
     GLint heightLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "screenHeight");
     GLint lightPosLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "lightPos");
+    GLint meshTransLoc = glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "meshTrans");
 
 	// pass camera data
 	glUniform3fv(eyeLoc, 1, glm::value_ptr(camera->getEyePoint()));
@@ -157,9 +167,49 @@ void MyGLCanvas::drawScene() {
 	glUniform1f(nearLoc, camera->getNearPlane());
 	glUniform1f(widthLoc, camera->getScreenWidth());
 	glUniform1f(heightLoc, camera->getScreenHeight());
-	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(3.0f)));	// default light
+	glUniform3fv(lightPosLoc, 1, glm::value_ptr(glm::vec3(300.0f)));	// default light
+	glUniform3fv(meshTransLoc, 1, glm::value_ptr(meshTranslate));	// mesh translation
 
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("objectShaders")->programID, "frameCounter"), frameCounter);
+
+	// Pass wave data to object shaders
+	std::vector<WaveData> waves = generatePhillipsSpectrum();
+	int count = (int)waves.size();
+
+	std::vector<GLfloat> dirData;
+	dirData.reserve(count * 2);
+	std::vector<GLfloat> omegaData;
+	omegaData.reserve(count);
+	std::vector<GLfloat> ampData;
+	ampData.reserve(count);
+	std::vector<GLfloat> phaseData;
+	phaseData.reserve(count);
+
+	for (auto &w : waves) {
+		dirData.push_back(w.dirX);
+		dirData.push_back(w.dirZ);
+		omegaData.push_back(w.omega);
+		ampData.push_back(w.amplitude);
+		phaseData.push_back(w.phaseOffset);
+	}
+
+	GLuint progID = myShaderManager->getShaderProgram("objectShaders")->programID;
+
+	GLint waveCountLoc = glGetUniformLocation(progID, "waveCount");
+	glUniform1i(waveCountLoc, count);
+
+	GLint waveDirLoc = glGetUniformLocation(progID, "waveDir");
+	glUniform2fv(waveDirLoc, count, dirData.data());
+
+	GLint waveOmegaLoc = glGetUniformLocation(progID, "waveOmega");
+	glUniform1fv(waveOmegaLoc, count, omegaData.data());
+
+	GLint waveAmplitudeLoc = glGetUniformLocation(progID, "waveAmplitude");
+	glUniform1fv(waveAmplitudeLoc, count, ampData.data());
+
+	GLint wavePhaseOffsetLoc = glGetUniformLocation(progID, "wavePhaseOffset");
+	glUniform1fv(wavePhaseOffsetLoc, count, phaseData.data());
+
 
 	// pass scene data
 	if (this->parser || this->myObjectPLY) {
@@ -199,10 +249,10 @@ void MyGLCanvas::drawScene() {
 		glUniform1i(treeSizeLoc, treeSize);
 
 		// pass light
-		SceneLightData lightData;
-		if (parser && parser->getLightData(0, lightData)) {
-			glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
-		}
+		// SceneLightData lightData;
+		// if (parser && parser->getLightData(0, lightData)) {
+		// 	glUniform3fv(lightPosLoc, 1, glm::value_ptr(lightData.pos));
+		// }
 	}
 
     // draw pixels
@@ -242,6 +292,18 @@ void MyGLCanvas::drawScene() {
 	GLint distanceMapLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "distanceMap");
 	glUniform1i(distanceMapLoc, 2);
 
+	// bind sea tex to GL_TEXTURE3
+	GLint seaTexLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "seaTex");
+    glActiveTexture(GL_TEXTURE3);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("seaTex"));
+    glUniform1i(seaTexLoc, 3);
+
+	// bind sea tex to GL_TEXTURE4
+    GLint seaNormalTexLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "seaNormalTex");
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, myTextureManager->getTextureID("seaNormalTex"));
+    glUniform1i(seaNormalTexLoc, 4);
+
     // pass Uniform
     eyeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "eyePosition");
     lookVecLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "lookVec");
@@ -264,6 +326,21 @@ void MyGLCanvas::drawScene() {
 	glUniform2f(framebufferSizeLoc, float(w()), float(h()));
 
 	glUniform1i(glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "frameCounter"), frameCounter);
+	// pass cloud data
+	GLint cloudDensityLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "cloudDensity");
+	GLint cloudSpeedLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "cloudSpeed");
+	GLint cloudWidthLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "width");
+	GLint cloudBottomLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "bottom");
+	GLint cloudTopLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "top");
+	GLint sampleRangeLoc = glGetUniformLocation(myShaderManager->getShaderProgram("environmentShaders")->programID, "sampleRange");
+
+	// pass cloud data
+	glUniform1f(cloudDensityLoc, cloudDensity);
+	glUniform1f(cloudSpeedLoc, cloudSpeed);
+	glUniform1f(cloudWidthLoc, cloudWidth);
+	glUniform1f(cloudBottomLoc, cloudBottom);
+	glUniform1f(cloudTopLoc, cloudTop);
+	glUniform1f(sampleRangeLoc, sampleRange);
 
     glDrawArrays(GL_POINTS, 0, w() * h());
 	
@@ -613,6 +690,12 @@ void MyGLCanvas::loadPLY(std::string filename) {
 	updateCamera(w(), h());
 	camera->orientLookAt(glm::vec3(0.0f, 1.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 	printf("load ply complete\n");
+}
+
+void MyGLCanvas::loadNoise(std::string filename) {
+	printf("loading noise file\n");
+	myTextureManager->deleteTexture("noiseTex");
+	myTextureManager->loadTexture3D("noiseTex", filename);
 }
 
 void MyGLCanvas::loadPlane() {

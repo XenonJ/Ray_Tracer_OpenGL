@@ -58,7 +58,7 @@ class ppm{
 		unsigned int bindTexture();
 		unsigned int getTextureID();
 		unsigned int bindTexture3D(unsigned int sizeT);
-
+		void releaseTexture();
 private:
 		std::string magicNumber;	// Used in the header to determine
 									// how to parse this file. Example, P3, P6, etc.

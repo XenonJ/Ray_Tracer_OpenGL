@@ -40,6 +40,14 @@ public:
 	// Frame counter
 	int frameCounter = 0;
 
+	// Cloud Parameters
+	float cloudDensity;
+	float cloudSpeed;
+	float cloudWidth;
+	float cloudBottom;
+	float cloudTop;
+	float sampleRange;
+
 	// Camera
 	float scale;
 	Camera* camera;
@@ -57,6 +65,7 @@ public:
 
 	glm::vec3 eyePosition;
 	glm::vec3 rotVec;
+	glm::vec3 meshTranslate;	// translation for mesh rendering
 	// glm::vec3 lookatPoint;
 	// glm::vec3 lightPos;
 	// glm::vec3 rotWorldVec;
@@ -89,6 +98,9 @@ public:
 
 	void loadPLY(std::string filename);
 	void loadPlane();
+	void initShaders();
+	void loadNoise(std::string filename);
+	TextureManager* getTextureManager() { return myTextureManager; }
 
 private:
 	void draw();
@@ -97,7 +109,7 @@ private:
 	void flatSceneData();
 	void flatSceneDataRec(SceneNode* node, glm::mat4 curMat);
 
-	void initShaders();
+	
 
 	int handle(int);
 	void resize(int x, int y, int w, int h);
