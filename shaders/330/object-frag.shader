@@ -271,7 +271,7 @@ void computeNormalFromHeight(vec2 pos, float t, out float H, out vec3 N) {
     float Hx = (calculateWaveHeight(pos + vec2(epsilon,0), t) - calculateWaveHeight(pos - vec2(epsilon,0), t)) / (2.0*epsilon);
     float Hz = (calculateWaveHeight(pos + vec2(0,epsilon), t) - calculateWaveHeight(pos - vec2(0,epsilon), t)) / (2.0*epsilon);
     H = H0;
-    N = normalize(vec3(-Hx, abs(H0), -Hz));
+    N = normalize(vec3(-Hx, abs(1.0), -Hz));
 }
 
 vec4 renderDynamicSea(vec3 cameraPosition, vec3 worldPosition, float depth)
