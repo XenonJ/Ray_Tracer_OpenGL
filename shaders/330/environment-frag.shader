@@ -238,15 +238,24 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
         float density = getDensity(point, currentDistance);
 
         density *= 1.5;
-        vec3 L = normalize(lightPos - point);
+        float L = length(lightPos - point);
+        
+        // 根据高度计算光照衰减
+        float heightFactor = smoothstep(bottom, top, point.y);
+        
+        // 计算点到光源的方向
+        vec3 toLight = normalize(lightPos - point);
+        // 考虑垂直方向的光照影响
+        float verticalLight = max(0.0, toLight.y);
         
         // 根据距离调整光照采样
         float lightSampleDist = 5.0 + currentDistance * 0.1;
         float lightDensity = getDensity(point + L * lightSampleDist, currentDistance);
         float delta = clamp(density - lightDensity, 0.0, 1.0);
 
-        vec3 base = mix(baseBright, baseDark, density) * density;
-        vec3 light = mix(lightDark, lightBright, delta);
+        // 调整基础颜色和光照颜色的混合
+        vec3 base = mix(baseDark * 0.8, baseBright * 1.2, heightFactor) * density;
+        vec3 light = mix(lightDark, lightBright, delta * (heightFactor * 0.6 + verticalLight * 0.4));
         vec4 color = vec4(base * light, density);
         colorSum = color * (1.0 - colorSum.a) + colorSum;
 

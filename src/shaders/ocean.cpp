@@ -6,7 +6,7 @@
 
 const int N = 32;
 const float L = 64.0f;
-const float GRAVITY = 9.81f;
+const float GRAVITY = 7.8f;
 const float WAVE_AMP = 0.0002f;
 const float WIND_SPEED = 32.0f;
 const float DAMPING = 0.001f;
