@@ -38,8 +38,8 @@ Follow the steps below to set up and run the project:
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/<username>/<repo-name>.git
-   cd <repo-name>
+   git clone https://github.com/XenonJ/Ray_Tracer_OpenGL.git
+   cd Ray_Tracer_OpenGL
    ```
 
 2. **Setup on MacOS**
