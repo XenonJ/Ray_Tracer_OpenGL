@@ -60,6 +60,10 @@ Follow the steps below to set up and run the project:
 
 ## Implementation Details
 1. Ray Marching Volumetric Clouds
+> + Generate 3D noise from the 2D-tiled map
+> + Use adaptive stepsize for implementing the LOD
+> + Add margin detect to naturalize the clouds near the edge of cloud box
+> + Customize your own cloud with the interactive panel!!!
 
 2. Triangular Mesh Rendering
 > + calculating triangular mesh with xml scene graph, or read form ply file
