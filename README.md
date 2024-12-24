@@ -71,6 +71,9 @@ Follow the steps below to set up and run the project:
 > + pass in the data as texture buffer and calculate intersection in shader
 
 3. Dynamic Ocean Surface Simulation
+> + Generate wave data (Amplitude, Wave Direction, Angular Velocity, Phase Offset) using the Phillips Ocean Spectrum
+> + Compute wave heights and surface normals using the wave equation
+> + Render the ocean surface and reflections
 
 4. Shaders and Render Pipeline
 
