@@ -211,9 +211,12 @@ vec4 renderCloud(vec3 cameraPosition, vec3 worldPosition, float depth) {
     // Ray marching
     
     // 根据距离调整采样步长
-    float adaptiveStepSize = stepSize * (1.0 + smoothstep(0.0, 500.0, distanceFromCamera) * 2.0);
     
-    for (int i = 0; i < 200; i++) {
+    float adaptiveStepSize = stepSize * (1.0 + smoothstep(0.0, 500.0, distanceFromCamera) * 2.0);
+    float maxDistance = length(vec3(2*width, top-bottom, 2*width));
+    int maxSteps = int(maxDistance / adaptiveStepSize) + 50;
+    
+    for (int i = 0; i < maxSteps; i++) {
         float jitter = generateStepJitter(point, 0.3) * 0.1;
         
         // 使用自适应步长
